@@ -1,31 +1,26 @@
-<!-- Multi-Qualification Analysis -->
+{# ── Multi-Qualification Analysis ─────────────────────── #}
 {% if is_multi_qual %}
-<div class="card" id="multi-qual">
+<div class="card card-accent-gold" id="multi-qual">
   <div class="card-header">
-    <span class="card-icon">🔀</span>
+    <span class="card-header-icon">🔀</span>
     <h2>Multi-Qualification Funding Analysis</h2>
   </div>
   <div class="card-body">
 
-    <div class="alert alert-info" style="margin-bottom:1.25rem;">
-      <span class="alert-icon">ℹ</span>
-      <div class="alert-body">
-        <strong>NSFAS One-Qualification Policy</strong>
-        <p>
-          You are registered for {{ student.academic_record.registered_qualifications | length }} qualifications.
-          NSFAS policy limits funding to <strong>one qualification per student</strong> at a time.
-          The table below shows which qualification is covered and which requires alternative funding.
-        </p>
-      </div>
+    <div class="mq-intro">
+      <strong>NSFAS one-qualification policy:</strong>
+      You are registered for {{ student.academic_record.registered_qualifications | length }} qualifications.
+      NSFAS policy limits funding to <strong>one qualification per student</strong> at a time.
+      The breakdown below shows which qualification is covered and which requires alternative funding.
     </div>
 
-    <div class="table-wrap">
+    <div class="table-wrap" style="margin-bottom:1.1rem;">
       <table>
         <thead>
           <tr>
             <th>Code</th>
             <th>Qualification</th>
-            <th>Enrolled</th>
+            <th style="text-align:center;">Year Enrolled</th>
             <th style="text-align:center;">Status</th>
             <th style="text-align:center;">NSFAS Funded</th>
           </tr>
@@ -38,9 +33,9 @@
             {% set qf = student.funding_status.nsfas_funded %}
           {% endif %}
           <tr>
-            <td><span class="badge badge-muted">{{ qual.qualification_code }}</span></td>
-            <td>{{ qual.qualification_name }}</td>
-            <td>{{ qual.year_enrolled }}</td>
+            <td><span class="badge badge-neutral">{{ qual.qualification_code }}</span></td>
+            <td style="font-weight:600;">{{ qual.qualification_name }}</td>
+            <td style="text-align:center;">{{ qual.year_enrolled }}</td>
             <td style="text-align:center;">
               {% if qual.status == 'Active' %}
                 <span class="badge badge-success">Active</span>
@@ -49,10 +44,8 @@
               {% endif %}
             </td>
             <td style="text-align:center;">
-              {% if qf %}
-                <span class="badge badge-success">✓ Yes</span>
-              {% else %}
-                <span class="badge badge-warning">✗ No</span>
+              {% if qf %}<span class="badge badge-success">✓ Yes</span>
+              {% else  %}<span class="badge badge-warning">✗ No</span>
               {% endif %}
             </td>
           </tr>
@@ -61,14 +54,14 @@
       </table>
     </div>
 
-    <!-- Per-qual warnings -->
+    {# Per-qual warnings for unfunded qualifications #}
     {% for qual in student.academic_record.registered_qualifications %}
       {% if qual.nsfas_funded is defined and not qual.nsfas_funded %}
-      <div class="alert alert-warning" style="margin-top:.85rem;">
+      <div class="alert alert-warning">
         <span class="alert-icon">⚠</span>
         <div class="alert-body">
-          <strong>{{ qual.qualification_name }} ({{ qual.qualification_code }})</strong>
-          <p>{{ qual.funding_note if qual.funding_note else 'This qualification is not covered by your current NSFAS award. See bursary recommendations below.' }}</p>
+          <strong>{{ qual.qualification_name }} ({{ qual.qualification_code }}) — Not Funded</strong>
+          <p>{{ qual.funding_note if qual.funding_note else 'This qualification is not covered by your current NSFAS award. See the bursary recommendations below for alternative funding options.' }}</p>
         </div>
       </div>
       {% endif %}

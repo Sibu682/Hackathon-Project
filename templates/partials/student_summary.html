@@ -1,7 +1,7 @@
-<!-- Student Summary Card -->
-<div class="card fade-in" id="summary">
+{# ── Student Summary Card ──────────────────────────────── #}
+<div class="card card-accent fade-in" id="summary">
   <div class="card-header">
-    <span class="card-icon">👤</span>
+    <span class="card-header-icon">👤</span>
     <h2>Student Summary</h2>
   </div>
   <div class="card-body">
@@ -19,6 +19,10 @@
         <span>{{ student.personal_info.email }}</span>
       </div>
       <div class="profile-item">
+        <label>Phone</label>
+        <span>{{ student.personal_info.phone }}</span>
+      </div>
+      <div class="profile-item">
         <label>Province</label>
         <span>{{ student.personal_info.province }}</span>
       </div>
@@ -30,25 +34,25 @@
         <label>Academic Standing</label>
         <span>
           {% if student.academic_record.academic_standing == 'Good Standing' %}
-            <span class="badge badge-success">✓ {{ student.academic_record.academic_standing }}</span>
+            <span class="badge badge-success">✓ Good Standing</span>
           {% else %}
             <span class="badge badge-danger">⚠ {{ student.academic_record.academic_standing }}</span>
           {% endif %}
         </span>
       </div>
       <div class="profile-item">
-        <label>GPA</label>
+        <label>Current GPA</label>
         <span>{{ student.academic_record.gpa }}%</span>
       </div>
       <div class="profile-item">
         <label>Outstanding Balance</label>
         <span>
           {% if student.funding_status.outstanding_balance > 0 %}
-            <span style="color:var(--danger); font-weight:700;">
+            <strong style="color:var(--danger);">
               R{{ '{:,.2f}'.format(student.funding_status.outstanding_balance) }}
-            </span>
+            </strong>
           {% else %}
-            <span style="color:var(--success); font-weight:700;">R0.00</span>
+            <strong style="color:var(--success);">R0.00</strong>
           {% endif %}
         </span>
       </div>

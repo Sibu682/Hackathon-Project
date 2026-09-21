@@ -34,12 +34,15 @@ def _verify_password(plain_password: str, hashed_password: str) -> bool:
 
 def authenticate(username: str, password: str) -> Optional[dict]:
     """
-    Attempt to authenticate a student by username and password.
+    Attempt to authenticate a student by student number (username) and password.
+
+    The student number is the login identifier — not a name-based username.
+    Lookup is case-insensitive and strips whitespace.
 
     Returns:
         The student record dict if credentials are valid, else None.
     """
-    student = STUDENT_DATABASE.get(username.strip().lower())
+    student = STUDENT_DATABASE.get(username.strip())
     if student is None:
         return None
 
