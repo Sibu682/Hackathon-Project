@@ -1,19 +1,22 @@
-<!-- Alternative Financial Aid -->
+{# ── Alternative Financial Aid ─────────────────────────── #}
 {% if show_alt_funding and alt_funding %}
-<div class="card" id="alt-funding">
+<div class="card card-accent-gold" id="alt-funding">
   <div class="card-header">
-    <span class="card-icon">🤝</span>
+    <span class="card-header-icon">🤝</span>
     <h2>Alternative Financial Aid Opportunities</h2>
+    <span class="card-header-badge">
+      <span class="badge badge-neutral">{{ alt_funding | length }} scheme{% if alt_funding|length != 1 %}s{% endif %}</span>
+    </span>
   </div>
   <div class="card-body">
 
     <div class="alert alert-info" style="margin-bottom:1.25rem;">
       <span class="alert-icon">ℹ</span>
       <div class="alert-body">
-        <strong>{{ alt_funding | length }} scheme(s) matched to your profile</strong>
+        <strong>{{ alt_funding | length }} scheme{% if alt_funding|length != 1 %}s{% endif %} matched to your profile</strong>
         <p>
           These opportunities are based on your financial profile and registration status.
-          UNISA does not guarantee approval. Apply as early as possible as funding is limited.
+          UNISA does not guarantee approval. Apply as early as possible — funding is limited.
         </p>
       </div>
     </div>
@@ -28,15 +31,15 @@
         <p class="alt-desc">{{ partner.description }}</p>
 
         {% if partner.income_threshold %}
-        <div class="alert alert-info" style="padding:.55rem .85rem; margin-bottom:.75rem;">
+        <div class="alert alert-info" style="padding:.55rem .9rem; margin-bottom:.85rem;">
           <span class="alert-icon" style="font-size:.9rem;">💰</span>
           <div class="alert-body">
-            <p>Income threshold: Up to R{{ '{:,}'.format(partner.income_threshold) }} household income per annum</p>
+            <p>Income threshold: household income up to R{{ '{:,}'.format(partner.income_threshold) }} per annum</p>
           </div>
         </div>
         {% endif %}
 
-        <p style="font-size:.82rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:.4rem;">
+        <p style="font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); margin-bottom:.45rem;">
           Eligibility Requirements
         </p>
         <ul class="elig-list">
@@ -47,10 +50,10 @@
 
         <div class="alt-meta">
           <span>📅 Deadline: <strong>{{ partner.deadline }}</strong></span>
-          <span>✉ {{ partner.contact_email }}</span>
+          <span>✉ <a href="mailto:{{ partner.contact_email }}">{{ partner.contact_email }}</a></span>
         </div>
 
-        <a href="{{ partner.application_url }}" target="_blank" class="btn-alt-apply">
+        <a href="{{ partner.application_url }}" target="_blank" rel="noopener" class="btn-alt-apply">
           Apply Now →
         </a>
       </div>

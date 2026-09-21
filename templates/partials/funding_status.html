@@ -1,15 +1,17 @@
-<!-- NSFAS Funding Status Card -->
-<div class="card fade-in-2" id="funding">
+{# ── NSFAS Funding Status Card ─────────────────────────── #}
+<div class="card card-accent fade-in-2" id="funding">
   <div class="card-header">
-    <span class="card-icon">💳</span>
+    <span class="card-header-icon">💳</span>
     <h2>NSFAS Funding Status</h2>
   </div>
   <div class="card-body">
 
+    {# Stat row #}
     <div class="stat-row">
+
       <div class="stat-card {% if assessment.is_defunded %}red{% elif assessment.is_nsfas_funded %}green{% else %}gold{% endif %}">
         <div class="stat-label">NSFAS Status</div>
-        <div class="stat-value" style="font-size:1rem; margin-top:.25rem;">
+        <div class="stat-value" style="font-size:.9rem; margin-top:.3rem;">
           {% if assessment.is_defunded %}
             <span class="badge badge-danger">⛔ Defunded</span>
           {% elif assessment.is_nsfas_funded %}
@@ -20,9 +22,9 @@
         </div>
       </div>
 
-      <div class="stat-card">
+      <div class="stat-card primary">
         <div class="stat-label">Application Status</div>
-        <div class="stat-value" style="font-size:.95rem; margin-top:.25rem;">
+        <div class="stat-value" style="font-size:.88rem;">
           {{ student.funding_status.nsfas_application_status }}
         </div>
       </div>
@@ -40,19 +42,41 @@
       {% endif %}
 
       {% if student.funding_status.nsfas_reference_number %}
-      <div class="stat-card blue">
-        <div class="stat-label">Reference Number</div>
-        <div class="stat-value" style="font-size:.8rem; word-break:break-all;">
+      <div class="stat-card">
+        <div class="stat-label">Reference No.</div>
+        <div class="stat-value" style="font-size:.76rem; word-break:break-all; font-weight:600;">
           {{ student.funding_status.nsfas_reference_number }}
         </div>
       </div>
       {% endif %}
-    </div>
 
-    <!-- Outstanding fee reasons -->
+    </div>{# /stat-row #}
+
+    {# Defund detail block #}
+    {% if assessment.is_defunded %}
+    <div class="alert alert-danger" style="margin-top:.5rem;">
+      <span class="alert-icon">⛔</span>
+      <div class="alert-body">
+        <strong>Defunding Notice</strong>
+        <p>{{ student.funding_status.defund_reason }}</p>
+        {% if student.funding_status.defund_date %}
+        <p style="margin-top:.4rem;"><strong>Effective:</strong> {{ student.funding_status.defund_date }}</p>
+        {% endif %}
+        {% if student.funding_status.appeal_deadline %}
+        <p><strong>Appeal deadline:</strong>
+          <span style="color:var(--danger); font-weight:700;">
+            {{ student.funding_status.appeal_deadline }}
+          </span>
+        </p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+    {# Outstanding fee reasons #}
     {% if assessment.has_outstanding_fees and assessment.potential_reasons %}
-    <div style="margin-top:.5rem;">
-      <p style="font-size:.88rem; font-weight:600; margin-bottom:.5rem; color:var(--warning);">
+    <div style="margin-top:.85rem;">
+      <p style="font-size:.82rem; font-weight:700; color:var(--warning); margin-bottom:.5rem; text-transform:uppercase; letter-spacing:.05em;">
         ⚠ Possible reasons for outstanding balance
       </p>
       <ul class="reason-list">
@@ -62,25 +86,8 @@
       </ul>
       <p class="reason-disclaimer">
         * These are potential reasons only and have not been confirmed.
-          Contact UNISA Student Finance for an official explanation.
+        Contact UNISA ({{ unisa_contact_centre }}) for an official explanation.
       </p>
-    </div>
-    {% endif %}
-
-    <!-- Defund details -->
-    {% if assessment.is_defunded %}
-    <div class="alert alert-danger" style="margin-top:1rem;">
-      <span class="alert-icon">⛔</span>
-      <div class="alert-body">
-        <strong>Defunding Details</strong>
-        <p>{{ student.funding_status.defund_reason }}</p>
-        {% if student.funding_status.defund_date %}
-        <p style="margin-top:.35rem;"><strong>Effective date:</strong> {{ student.funding_status.defund_date }}</p>
-        {% endif %}
-        {% if student.funding_status.appeal_deadline %}
-        <p><strong>Appeal deadline:</strong> {{ student.funding_status.appeal_deadline }}</p>
-        {% endif %}
-      </div>
     </div>
     {% endif %}
 

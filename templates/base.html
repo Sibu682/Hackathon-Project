@@ -11,78 +11,87 @@
 </head>
 <body>
 
-<!-- ── Navbar ──────────────────────────────────────────────── -->
-<nav class="navbar">
-  <div class="navbar-brand">
-    <span style="font-size:1.6rem">🎓</span>
+{# ── Navbar ────────────────────────────────────────────── #}
+<nav class="navbar" role="navigation" aria-label="Main navigation">
+  <a href="{{ url_for('dashboard') }}" class="navbar-brand" aria-label="UNISA Financial Aid Assistant home">
+    <div class="navbar-logo" aria-hidden="true">🎓</div>
     <div>
-      <div>{{ app_name }}</div>
+      <span class="navbar-title">{{ app_name }}</span>
+      <span class="navbar-subtitle">University of South Africa</span>
     </div>
-    <span class="badge-beta">Beta</span>
-  </div>
+    <span class="navbar-badge">AI Powered</span>
+  </a>
+
   <div class="navbar-right">
     {% if student %}
-    <span class="student-name">
-      {{ student.personal_info.first_name }} {{ student.personal_info.last_name }}
-      &nbsp;·&nbsp; <span style="opacity:.65">{{ student.student_id }}</span>
-    </span>
+    <div class="navbar-student">
+      <strong>{{ student.personal_info.first_name }} {{ student.personal_info.last_name }}</strong>
+      Student No: {{ student.student_id }}
+    </div>
     {% endif %}
-    <a href="{{ url_for('logout') }}" class="btn-logout">Sign out</a>
+    <a href="{{ url_for('logout') }}" class="btn-signout">Sign out</a>
   </div>
 </nav>
 
-<!-- ── Sidebar ─────────────────────────────────────────────── -->
+{# ── Layout ────────────────────────────────────────────── #}
 <div class="page-wrapper">
-  <aside class="sidebar">
+
+  {# ── Sidebar ─────────────────────────────────────────── #}
+  <aside class="sidebar" role="complementary" aria-label="Navigation">
     {% if student %}
-    <div class="sidebar-section" style="padding-bottom:.75rem; border-bottom:1px solid var(--border); margin-bottom:.75rem;">
-      <div style="font-weight:700; font-size:.95rem;">{{ student.personal_info.first_name }} {{ student.personal_info.last_name }}</div>
-      <div style="font-size:.78rem; color:var(--text-muted);">{{ student.personal_info.email }}</div>
-      <div style="margin-top:.5rem;">
-        {% if assessment.is_defunded %}
-          <span class="badge badge-danger">⛔ Defunded</span>
-        {% elif assessment.is_nsfas_funded %}
-          <span class="badge badge-success">✓ NSFAS Funded</span>
-        {% else %}
-          <span class="badge badge-warning">⚠ Not Funded</span>
-        {% endif %}
-      </div>
+    <div class="sidebar-profile">
+      <div class="sp-name">{{ student.personal_info.first_name }} {{ student.personal_info.last_name }}</div>
+      <div class="sp-num">{{ student.student_id }}</div>
+      {% if assessment.is_defunded %}
+        <span class="badge badge-danger">⛔ Defunded</span>
+      {% elif assessment.is_nsfas_funded %}
+        <span class="badge badge-success">✓ NSFAS Funded</span>
+      {% else %}
+        <span class="badge badge-warning">⚠ Not NSFAS Funded</span>
+      {% endif %}
     </div>
-    <span class="sidebar-label">Navigation</span>
-    <a href="#summary" class="sidebar-link active"><span class="icon">📊</span> Summary</a>
-    <a href="#funding" class="sidebar-link"><span class="icon">💳</span> Funding Status</a>
+
+    <span class="sidebar-label">Overview</span>
+    <a href="#summary"       class="sidebar-link"><span class="icon">👤</span> Student Summary</a>
+    <a href="#funding"       class="sidebar-link"><span class="icon">💳</span> Funding Status</a>
     <a href="#qualifications" class="sidebar-link"><span class="icon">📚</span> Qualifications</a>
     {% if is_multi_qual %}
-    <a href="#multi-qual" class="sidebar-link"><span class="icon">🔀</span> Multi-Qual Analysis</a>
+    <a href="#multi-qual"    class="sidebar-link"><span class="icon">🔀</span> Multi-Qual Analysis</a>
     {% endif %}
-    <a href="#payments" class="sidebar-link"><span class="icon">🧾</span> Payment History</a>
+    {% if student.funding_status.payment_history %}
+    <a href="#payments"      class="sidebar-link"><span class="icon">🧾</span> Payment History</a>
+    {% endif %}
     {% if assessment.is_defunded %}
-    <a href="#appeal" class="sidebar-link"><span class="icon">⚖️</span> Appeal Process</a>
-    {% endif %}
-    <a href="#bursaries" class="sidebar-link"><span class="icon">🎯</span> Bursaries</a>
-    {% if show_alt_funding %}
-    <a href="#alt-funding" class="sidebar-link"><span class="icon">🤝</span> Alt. Funding</a>
+    <a href="#appeal"        class="sidebar-link"><span class="icon">⚖️</span> Appeal Process</a>
     {% endif %}
 
     <hr class="sidebar-divider" />
-    <span class="sidebar-label">Quick Links</span>
-    <a href="{{ nsfas_website }}" target="_blank" class="sidebar-link"><span class="icon">🌐</span> NSFAS Website</a>
-    <a href="{{ unisa_finance_url }}" target="_blank" class="sidebar-link"><span class="icon">🏛️</span> UNISA Finance</a>
+    <span class="sidebar-label">Funding Opportunities</span>
+    <a href="#bursaries"     class="sidebar-link"><span class="icon">🎯</span> Bursary Matches</a>
+    {% if show_alt_funding %}
+    <a href="#alt-funding"   class="sidebar-link"><span class="icon">🤝</span> Alt. Funding</a>
+    {% endif %}
+
+    <hr class="sidebar-divider" />
+    <span class="sidebar-label">Useful Links</span>
+    <a href="{{ nsfas_website }}"   target="_blank" rel="noopener" class="sidebar-link"><span class="icon">🌐</span> NSFAS Website</a>
+    <a href="{{ unisa_finance_url }}" target="_blank" rel="noopener" class="sidebar-link"><span class="icon">🏛️</span> UNISA Fees &amp; Funding</a>
     {% endif %}
   </aside>
 
-  <!-- ── Main content ───────────────────────────────────────── -->
-  <main class="main-content">
+  {# ── Main ─────────────────────────────────────────────── #}
+  <main class="main-content" id="main-content" role="main">
     {% block content %}{% endblock %}
 
-    <!-- Footer disclaimer -->
     <div class="disclaimer">
-      <strong>Disclaimer:</strong> This is a prototype AI-powered advisory tool. Information displayed is based on
-      simulation data and does not constitute an official NSFAS or UNISA determination. Always verify your funding
-      status directly with UNISA Student Finance ({{ unisa_finance_phone }}) or NSFAS ({{ nsfas_helpline }}).
+      <strong>Disclaimer:</strong> This is an AI-powered advisory prototype using simulation data.
+      It does not constitute an official NSFAS or UNISA determination.
+      Always verify your funding status directly with UNISA
+      ({{ unisa_contact_centre }}) or NSFAS ({{ nsfas_helpline }}).
     </div>
   </main>
-</div>
+
+</div>{# /page-wrapper #}
 
 <script src="{{ url_for('static', filename='js/main.js') }}"></script>
 {% block extra_scripts %}{% endblock %}
