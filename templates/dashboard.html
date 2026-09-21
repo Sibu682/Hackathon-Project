@@ -1,0 +1,88 @@
+{% extends "base.html" %}
+{% block title %}Dashboard — {{ student.personal_info.first_name }} {{ student.personal_info.last_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Financial Aid Dashboard</h1>
+  <p>Welcome back, {{ student.personal_info.first_name }}. Here is your current funding and registration overview.</p>
+</div>
+
+<!-- AI Assessment Summary -->
+<div class="ai-summary fade-in">
+  <div class="ai-icon">🤖</div>
+  <div class="ai-body">
+    <h3>AI Funding Assessment</h3>
+    <p>{{ assessment.summary_message }}</p>
+    <span class="ai-source">
+      Assessment engine: {{ 'OpenAI ' + assessment.source if assessment.source == 'ai' else 'Rule-based engine (no API key configured)' }}
+    </span>
+  </div>
+</div>
+
+<!-- Notifications -->
+{% if assessment.has_outstanding_fees %}
+<div class="alert alert-warning fade-in">
+  <span class="alert-icon">⚠</span>
+  <div class="alert-body">
+    <strong>Outstanding Balance of R{{ '{:,.2f}'.format(assessment.outstanding_amount) }}</strong>
+    <p>Your account has an outstanding balance. This may affect your registration and access to results. Contact UNISA Student Finance at {{ unisa_finance_phone }} for assistance.</p>
+  </div>
+</div>
+{% endif %}
+
+{% if student.academic_record.academic_standing == 'Academic Risk' %}
+<div class="alert alert-danger fade-in">
+  <span class="alert-icon">⛔</span>
+  <div class="alert-body">
+    <strong>Academic Standing: At Risk</strong>
+    <p>Your academic standing may impact your continued NSFAS eligibility. Please contact your academic advisor immediately.</p>
+  </div>
+</div>
+{% endif %}
+
+{% if student.funding_status.unfunded_qualifications %}
+<div class="alert alert-info fade-in">
+  <span class="alert-icon">ℹ</span>
+  <div class="alert-body">
+    <strong>Multiple Qualifications Detected</strong>
+    <p>NSFAS funds only one qualification at a time. Some of your registered qualifications are not covered. See the Multi-Qualification Analysis and Bursary sections below.</p>
+  </div>
+</div>
+{% endif %}
+
+{% include 'partials/student_summary.html' %}
+{% include 'partials/funding_status.html' %}
+{% include 'partials/qualifications.html' %}
+{% include 'partials/multi_qual.html' %}
+{% include 'partials/payment_history.html' %}
+{% include 'partials/bursaries.html' %}
+{% include 'partials/alt_funding.html' %}
+
+<!-- Contact block -->
+<div class="card" id="contact">
+  <div class="card-header">
+    <span class="card-icon">📞</span>
+    <h2>UNISA Student Finance — Contact Details</h2>
+  </div>
+  <div class="card-body">
+    <div class="contact-grid">
+      <div class="contact-item">
+        <div class="contact-label">Phone</div>
+        <div class="contact-value">{{ unisa_finance_phone }}</div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-label">Email</div>
+        <div class="contact-value"><a href="mailto:{{ unisa_finance_email }}">{{ unisa_finance_email }}</a></div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-label">NSFAS Helpline</div>
+        <div class="contact-value">{{ nsfas_helpline }} (toll-free)</div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-label">NSFAS Website</div>
+        <div class="contact-value"><a href="{{ nsfas_website }}" target="_blank">{{ nsfas_website }}</a></div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

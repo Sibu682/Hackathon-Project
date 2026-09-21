@@ -1,0 +1,80 @@
+<!-- Qualifications & Modules -->
+<div class="card fade-in-3" id="qualifications">
+  <div class="card-header">
+    <span class="card-icon">📚</span>
+    <h2>Qualifications &amp; Registration</h2>
+  </div>
+  <div class="card-body">
+    {% for qual in student.academic_record.registered_qualifications %}
+
+    {# Determine per-qual NSFAS funding flag #}
+    {% if qual.nsfas_funded is defined %}
+      {% set qual_funded = qual.nsfas_funded %}
+    {% else %}
+      {% set qual_funded = student.funding_status.nsfas_funded %}
+    {% endif %}
+
+    <div class="qual-card">
+      <div class="qual-card-header">
+        <h3>{{ qual.qualification_name }}</h3>
+        <div style="display:flex; gap:.5rem; align-items:center; flex-wrap:wrap;">
+          <span class="badge badge-muted">{{ qual.qualification_code }}</span>
+          {% if qual.status == 'Active' %}
+            <span class="badge badge-success">Active</span>
+          {% else %}
+            <span class="badge badge-danger">{{ qual.status }}</span>
+          {% endif %}
+          {% if qual_funded %}
+            <span class="badge badge-success">✓ NSFAS Funded</span>
+          {% else %}
+            <span class="badge badge-warning">✗ Not NSFAS Funded</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="qual-card-body">
+        <div class="qual-meta">
+          <span>📅 Enrolled: {{ qual.year_enrolled }}</span>
+        </div>
+
+        {% if qual.funding_note %}
+        <div class="qual-note">ℹ {{ qual.funding_note }}</div>
+        {% endif %}
+
+        <!-- Modules table -->
+        <div class="table-wrap" style="margin-top:.75rem;">
+          <table>
+            <thead>
+              <tr>
+                <th>Code</th>
+                <th>Module Name</th>
+                <th style="text-align:center;">Credits</th>
+                <th style="text-align:center;">Result</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for mod in qual.modules_registered %}
+              <tr>
+                <td><span class="badge badge-muted">{{ mod.code }}</span></td>
+                <td>{{ mod.name }}</td>
+                <td style="text-align:center;">{{ mod.credits }}</td>
+                <td style="text-align:center;">
+                  {% if mod.result is none %}
+                    <span class="result-incomplete">Incomplete</span>
+                  {% elif mod.result >= 50 %}
+                    <span class="result-pass">{{ mod.result }}%</span>
+                  {% else %}
+                    <span class="result-fail">{{ mod.result }}%</span>
+                  {% endif %}
+                </td>
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    {% endfor %}
+  </div>
+</div>

@@ -1,0 +1,70 @@
+<!-- Bursary Recommendations -->
+<div class="card" id="bursaries">
+  <div class="card-header">
+    <span class="card-icon">🎯</span>
+    <h2>Personalised Bursary Recommendations</h2>
+  </div>
+  <div class="card-body">
+
+    {% if bursaries %}
+    <div class="alert alert-info" style="margin-bottom:1.25rem;">
+      <span class="alert-icon">ℹ</span>
+      <div class="alert-body">
+        <strong>{{ bursaries | length }} bursaries matched to your profile</strong>
+        <p>
+          Recommendations are based on your field of study, GPA ({{ student.academic_record.gpa }}%),
+          and financial profile. Eligibility is subject to each funder's requirements —
+          verify all details directly with the funder before applying.
+        </p>
+      </div>
+    </div>
+
+    {% for b in bursaries %}
+    <div class="bursary-card">
+      <div class="bursary-card-header">
+        <div style="display:flex; align-items:center; gap:.65rem;">
+          <div class="bursary-rank">{{ loop.index }}</div>
+          <h3>{{ b.name }}</h3>
+        </div>
+        <span class="badge badge-success" style="font-size:.82rem;">R{{ '{:,}'.format(b.amount) }} / year</span>
+      </div>
+      <div class="bursary-card-body">
+        <div class="bursary-meta">
+          <span>🏢 {{ b.funder }}</span>
+          <span>📅 Deadline: <strong>{{ b.deadline }}</strong></span>
+          <span>📖 {{ b.fields_of_study | join(', ') }}</span>
+          {% if b.financial_need_required %}
+          <span>💰 Financial need required</span>
+          {% endif %}
+          <span>🎓 Min GPA: {{ b.min_gpa }}%</span>
+        </div>
+        <p class="bursary-desc">{{ b.description }}</p>
+        {% if b._matched_criteria %}
+        <div>
+          <p style="font-size:.78rem; font-weight:600; color:var(--text-muted); margin-bottom:.35rem;">WHY YOU MATCH</p>
+          <div class="criteria-list">
+            {% for c in b._matched_criteria %}
+            <span class="criteria-chip">✓ {{ c }}</span>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+        <a href="{{ b.application_url }}" target="_blank" class="btn-apply">
+          Apply Now →
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+
+    {% else %}
+    <div class="alert alert-info">
+      <span class="alert-icon">ℹ</span>
+      <div class="alert-body">
+        <strong>No bursaries matched at this time</strong>
+        <p>No bursary matches were found for your current profile and qualifications. Check back regularly as new bursaries are added.</p>
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>

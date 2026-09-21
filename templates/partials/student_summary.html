@@ -1,0 +1,57 @@
+<!-- Student Summary Card -->
+<div class="card fade-in" id="summary">
+  <div class="card-header">
+    <span class="card-icon">👤</span>
+    <h2>Student Summary</h2>
+  </div>
+  <div class="card-body">
+    <div class="profile-grid">
+      <div class="profile-item">
+        <label>Student Number</label>
+        <span>{{ student.student_id }}</span>
+      </div>
+      <div class="profile-item">
+        <label>Full Name</label>
+        <span>{{ student.personal_info.first_name }} {{ student.personal_info.last_name }}</span>
+      </div>
+      <div class="profile-item">
+        <label>Email</label>
+        <span>{{ student.personal_info.email }}</span>
+      </div>
+      <div class="profile-item">
+        <label>Province</label>
+        <span>{{ student.personal_info.province }}</span>
+      </div>
+      <div class="profile-item">
+        <label>Year of Study</label>
+        <span>Year {{ student.academic_record.year_of_study }}</span>
+      </div>
+      <div class="profile-item">
+        <label>Academic Standing</label>
+        <span>
+          {% if student.academic_record.academic_standing == 'Good Standing' %}
+            <span class="badge badge-success">✓ {{ student.academic_record.academic_standing }}</span>
+          {% else %}
+            <span class="badge badge-danger">⚠ {{ student.academic_record.academic_standing }}</span>
+          {% endif %}
+        </span>
+      </div>
+      <div class="profile-item">
+        <label>GPA</label>
+        <span>{{ student.academic_record.gpa }}%</span>
+      </div>
+      <div class="profile-item">
+        <label>Outstanding Balance</label>
+        <span>
+          {% if student.funding_status.outstanding_balance > 0 %}
+            <span style="color:var(--danger); font-weight:700;">
+              R{{ '{:,.2f}'.format(student.funding_status.outstanding_balance) }}
+            </span>
+          {% else %}
+            <span style="color:var(--success); font-weight:700;">R0.00</span>
+          {% endif %}
+        </span>
+      </div>
+    </div>
+  </div>
+</div>

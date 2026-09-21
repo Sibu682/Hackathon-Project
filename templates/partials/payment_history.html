@@ -1,0 +1,51 @@
+<!-- Payment History -->
+{% if student.funding_status.payment_history %}
+<div class="card" id="payments">
+  <div class="card-header">
+    <span class="card-icon">🧾</span>
+    <h2>Payment History</h2>
+  </div>
+  <div class="card-body" style="padding:0;">
+    <div class="table-wrap">
+      <table>
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Description</th>
+            <th style="text-align:right;">Amount</th>
+            <th style="text-align:center;">Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for payment in student.funding_status.payment_history %}
+          <tr>
+            <td style="white-space:nowrap;">{{ payment.date }}</td>
+            <td>{{ payment.description }}</td>
+            <td style="text-align:right; white-space:nowrap;">
+              {% if payment.amount > 0 %}
+                R{{ '{:,.2f}'.format(payment.amount) }}
+              {% else %}
+                <span style="color:var(--muted);">—</span>
+              {% endif %}
+            </td>
+            <td style="text-align:center;">
+              {% if payment.status == 'Paid' %}
+                <span class="pay-paid">✓ Paid</span>
+              {% elif payment.status == 'Pending' %}
+                <span class="pay-pending">⏳ Pending</span>
+              {% elif payment.status == 'Cancelled' %}
+                <span class="pay-cancelled">✗ Cancelled</span>
+              {% elif payment.status == 'Outstanding' %}
+                <span class="pay-outstanding">⚠ Outstanding</span>
+              {% else %}
+                {{ payment.status }}
+              {% endif %}
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>
+{% endif %}

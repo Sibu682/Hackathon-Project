@@ -1,0 +1,88 @@
+<!-- NSFAS Funding Status Card -->
+<div class="card fade-in-2" id="funding">
+  <div class="card-header">
+    <span class="card-icon">💳</span>
+    <h2>NSFAS Funding Status</h2>
+  </div>
+  <div class="card-body">
+
+    <div class="stat-row">
+      <div class="stat-card {% if assessment.is_defunded %}red{% elif assessment.is_nsfas_funded %}green{% else %}gold{% endif %}">
+        <div class="stat-label">NSFAS Status</div>
+        <div class="stat-value" style="font-size:1rem; margin-top:.25rem;">
+          {% if assessment.is_defunded %}
+            <span class="badge badge-danger">⛔ Defunded</span>
+          {% elif assessment.is_nsfas_funded %}
+            <span class="badge badge-success">✓ Active</span>
+          {% else %}
+            <span class="badge badge-warning">⚠ Not Funded</span>
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-label">Application Status</div>
+        <div class="stat-value" style="font-size:.95rem; margin-top:.25rem;">
+          {{ student.funding_status.nsfas_application_status }}
+        </div>
+      </div>
+
+      {% if student.funding_status.outstanding_balance > 0 %}
+      <div class="stat-card red">
+        <div class="stat-label">Outstanding Balance</div>
+        <div class="stat-value">R{{ '{:,.2f}'.format(student.funding_status.outstanding_balance) }}</div>
+      </div>
+      {% else %}
+      <div class="stat-card green">
+        <div class="stat-label">Outstanding Balance</div>
+        <div class="stat-value">R0.00</div>
+      </div>
+      {% endif %}
+
+      {% if student.funding_status.nsfas_reference_number %}
+      <div class="stat-card blue">
+        <div class="stat-label">Reference Number</div>
+        <div class="stat-value" style="font-size:.8rem; word-break:break-all;">
+          {{ student.funding_status.nsfas_reference_number }}
+        </div>
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- Outstanding fee reasons -->
+    {% if assessment.has_outstanding_fees and assessment.potential_reasons %}
+    <div style="margin-top:.5rem;">
+      <p style="font-size:.88rem; font-weight:600; margin-bottom:.5rem; color:var(--warning);">
+        ⚠ Possible reasons for outstanding balance
+      </p>
+      <ul class="reason-list">
+        {% for reason in assessment.potential_reasons %}
+        <li>{{ reason }}</li>
+        {% endfor %}
+      </ul>
+      <p class="reason-disclaimer">
+        * These are potential reasons only and have not been confirmed.
+          Contact UNISA Student Finance for an official explanation.
+      </p>
+    </div>
+    {% endif %}
+
+    <!-- Defund details -->
+    {% if assessment.is_defunded %}
+    <div class="alert alert-danger" style="margin-top:1rem;">
+      <span class="alert-icon">⛔</span>
+      <div class="alert-body">
+        <strong>Defunding Details</strong>
+        <p>{{ student.funding_status.defund_reason }}</p>
+        {% if student.funding_status.defund_date %}
+        <p style="margin-top:.35rem;"><strong>Effective date:</strong> {{ student.funding_status.defund_date }}</p>
+        {% endif %}
+        {% if student.funding_status.appeal_deadline %}
+        <p><strong>Appeal deadline:</strong> {{ student.funding_status.appeal_deadline }}</p>
+        {% endif %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+</div>

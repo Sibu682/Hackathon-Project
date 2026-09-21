@@ -1,0 +1,62 @@
+<!-- Alternative Financial Aid -->
+{% if show_alt_funding and alt_funding %}
+<div class="card" id="alt-funding">
+  <div class="card-header">
+    <span class="card-icon">🤝</span>
+    <h2>Alternative Financial Aid Opportunities</h2>
+  </div>
+  <div class="card-body">
+
+    <div class="alert alert-info" style="margin-bottom:1.25rem;">
+      <span class="alert-icon">ℹ</span>
+      <div class="alert-body">
+        <strong>{{ alt_funding | length }} scheme(s) matched to your profile</strong>
+        <p>
+          These opportunities are based on your financial profile and registration status.
+          UNISA does not guarantee approval. Apply as early as possible as funding is limited.
+        </p>
+      </div>
+    </div>
+
+    {% for partner in alt_funding %}
+    <div class="alt-card">
+      <div class="alt-card-header">
+        <h3>{{ partner.name }}</h3>
+        <span class="badge badge-info">{{ partner.type }}</span>
+      </div>
+      <div class="alt-card-body">
+        <p class="alt-desc">{{ partner.description }}</p>
+
+        {% if partner.income_threshold %}
+        <div class="alert alert-info" style="padding:.55rem .85rem; margin-bottom:.75rem;">
+          <span class="alert-icon" style="font-size:.9rem;">💰</span>
+          <div class="alert-body">
+            <p>Income threshold: Up to R{{ '{:,}'.format(partner.income_threshold) }} household income per annum</p>
+          </div>
+        </div>
+        {% endif %}
+
+        <p style="font-size:.82rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em; color:var(--text-muted); margin-bottom:.4rem;">
+          Eligibility Requirements
+        </p>
+        <ul class="elig-list">
+          {% for req in partner.eligibility %}
+          <li>{{ req }}</li>
+          {% endfor %}
+        </ul>
+
+        <div class="alt-meta">
+          <span>📅 Deadline: <strong>{{ partner.deadline }}</strong></span>
+          <span>✉ {{ partner.contact_email }}</span>
+        </div>
+
+        <a href="{{ partner.application_url }}" target="_blank" class="btn-alt-apply">
+          Apply Now →
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+
+  </div>
+</div>
+{% endif %}

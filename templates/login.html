@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Login — UNISA Financial Aid Assistant</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}" />
+</head>
+<body>
+<div class="login-wrap">
+  <div class="login-card fade-in">
+
+    <!-- Header -->
+    <div class="login-header">
+      <div class="logo-ring">🎓</div>
+      <h1>UNISA Student Portal</h1>
+      <p>AI-Powered Financial Aid Assistant</p>
+    </div>
+
+    <!-- Body -->
+    <div class="login-body">
+
+      {% if error %}
+      <div class="login-error">⚠ {{ error }}</div>
+      {% endif %}
+
+      <form method="POST" action="{{ url_for('login') }}" novalidate>
+        <div class="form-group">
+          <label for="username">Student Username</label>
+          <input type="text" id="username" name="username"
+                 placeholder="e.g. thabo.mokoena"
+                 autocomplete="username" autofocus required />
+        </div>
+        <div class="form-group">
+          <label for="password">Password</label>
+          <input type="password" id="password" name="password"
+                 placeholder="Enter your password"
+                 autocomplete="current-password" required />
+        </div>
+        <button type="submit" class="btn-login">Sign In →</button>
+      </form>
+
+      <!-- Demo shortcuts -->
+      <div class="demo-section">
+        <p>— Demo scenarios (no credentials needed) —</p>
+        <div class="demo-grid">
+          <a href="{{ url_for('demo', scenario='not_funded') }}" class="btn-demo btn-demo-1">
+            ⚠ Not Funded<br><span style="font-weight:400;font-size:.72rem;">Thabo Mokoena</span>
+          </a>
+          <a href="{{ url_for('demo', scenario='funded_with_outstanding') }}" class="btn-demo btn-demo-2">
+            ✓ Funded + Outstanding<br><span style="font-weight:400;font-size:.72rem;">Lerato Dlamini</span>
+          </a>
+          <a href="{{ url_for('demo', scenario='multi_qualification') }}" class="btn-demo btn-demo-3">
+            📚 Multi-Qualification<br><span style="font-weight:400;font-size:.72rem;">Naledi Sithole</span>
+          </a>
+          <a href="{{ url_for('demo', scenario='defunded') }}" class="btn-demo btn-demo-4">
+            ⛔ Defunded<br><span style="font-weight:400;font-size:.72rem;">Sipho Nkosi</span>
+          </a>
+        </div>
+      </div>
+
+    </div><!-- /login-body -->
+
+    <div class="login-footer">
+      All demo accounts use password: <strong>Pass@1234</strong><br>
+      For support contact UNISA: {{ unisa_finance_phone }}
+    </div>
+
+  </div><!-- /login-card -->
+</div>
+</body>
+</html>

@@ -1,0 +1,178 @@
+{% extends "base.html" %}
+{% block title %}Funding Alert — {{ student.personal_info.first_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Funding Status Alert</h1>
+  <p>Important information regarding your NSFAS funding status and next steps.</p>
+</div>
+
+<!-- AI Assessment -->
+<div class="ai-summary fade-in" style="background:linear-gradient(135deg, #7a1020, #58151c);">
+  <div class="ai-icon">🤖</div>
+  <div class="ai-body">
+    <h3>AI Funding Assessment</h3>
+    <p>{{ assessment.summary_message }}</p>
+    <span class="ai-source">
+      Assessment engine: {{ 'OpenAI' if assessment.source == 'ai' else 'Rule-based engine' }}
+    </span>
+  </div>
+</div>
+
+<!-- Critical defunding notice -->
+<div class="alert alert-danger fade-in" style="border-left-width:6px;">
+  <span class="alert-icon" style="font-size:1.4rem;">⛔</span>
+  <div class="alert-body">
+    <strong>NSFAS Funding Discontinued</strong>
+    <p>
+      Dear {{ student.personal_info.first_name }}, your NSFAS bursary award has been discontinued
+      effective <strong>{{ student.funding_status.defund_date }}</strong>.
+    </p>
+    <p style="margin-top:.4rem; font-style:italic;">
+      Stated reason: {{ student.funding_status.defund_reason }}
+    </p>
+    {% if student.funding_status.outstanding_balance > 0 %}
+    <p style="margin-top:.5rem;">
+      <strong>Outstanding balance: R{{ '{:,.2f}'.format(student.funding_status.outstanding_balance) }}</strong>
+      — this amount is now your responsibility. Contact UNISA Student Finance to discuss a payment arrangement.
+    </p>
+    {% endif %}
+  </div>
+</div>
+
+{% if student.funding_status.appeal_deadline %}
+<div class="alert alert-warning fade-in">
+  <span class="alert-icon">📅</span>
+  <div class="alert-body">
+    <strong>Appeal Deadline: {{ student.funding_status.appeal_deadline }}</strong>
+    <p>Ensure you submit all required documentation before this date. Late submissions may not be considered.</p>
+  </div>
+</div>
+{% endif %}
+
+{% include 'partials/student_summary.html' %}
+{% include 'partials/funding_status.html' %}
+{% include 'partials/qualifications.html' %}
+{% include 'partials/payment_history.html' %}
+
+<!-- Appeals Process -->
+<div class="card fade-in" id="appeal">
+  <div class="card-header">
+    <span class="card-icon">⚖️</span>
+    <h2>How to Query or Appeal Your Defunding Decision</h2>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-info" style="margin-bottom:1.25rem;">
+      <span class="alert-icon">ℹ</span>
+      <div class="alert-body">
+        <strong>NSFAS Appeal Portal</strong>
+        <p>
+          You can submit a formal appeal at:
+          <a href="{{ unisa_nsfas_appeal_url }}" target="_blank">{{ unisa_nsfas_appeal_url }}</a>
+        </p>
+      </div>
+    </div>
+
+    <ol class="steps">
+      <li>
+        <div class="step-num">1</div>
+        <div class="step-body">
+          <strong>Gather supporting documentation</strong>
+          <p>Collect your academic transcripts, proof of registration, NSFAS correspondence, and any supporting documents (e.g. medical certificates, affidavits for extenuating circumstances).</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">2</div>
+        <div class="step-body">
+          <strong>Contact UNISA Student Finance</strong>
+          <p>Call {{ unisa_finance_phone }} or email <a href="mailto:{{ unisa_finance_email }}">{{ unisa_finance_email }}</a> to confirm the specific appeal procedure for your situation.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">3</div>
+        <div class="step-body">
+          <strong>Submit a formal NSFAS appeal</strong>
+          <p>Log into the NSFAS self-service portal at <a href="https://my.nsfas.org.za" target="_blank">my.nsfas.org.za</a> and submit your appeal with supporting documents.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">4</div>
+        <div class="step-body">
+          <strong>Follow up regularly</strong>
+          <p>Track your appeal status on the NSFAS portal. Keep records of all correspondence. NSFAS typically responds within 15–30 business days.</p>
+        </div>
+      </li>
+      <li>
+        <div class="step-num">5</div>
+        <div class="step-body">
+          <strong>Explore alternative funding</strong>
+          <p>While your appeal is in progress, consider applying for the UNISA Student Financial Aid Fund (SFAF) as emergency support, or explore the bursary opportunities listed below.</p>
+        </div>
+      </li>
+    </ol>
+  </div>
+</div>
+
+<!-- Contact Details -->
+<div class="card">
+  <div class="card-header">
+    <span class="card-icon">📞</span>
+    <h2>Support Contacts</h2>
+  </div>
+  <div class="card-body">
+    <div class="contact-grid">
+      <div class="contact-item">
+        <div class="contact-label">UNISA Student Finance — Phone</div>
+        <div class="contact-value">{{ unisa_finance_phone }}</div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-label">UNISA Student Finance — Email</div>
+        <div class="contact-value"><a href="mailto:{{ unisa_finance_email }}">{{ unisa_finance_email }}</a></div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-label">NSFAS Helpline (toll-free)</div>
+        <div class="contact-value">{{ nsfas_helpline }}</div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-label">NSFAS Email</div>
+        <div class="contact-value"><a href="mailto:{{ nsfas_email }}">{{ nsfas_email }}</a></div>
+      </div>
+    </div>
+
+    <!-- Institutional support channels -->
+    <h3 style="font-size:.88rem; font-weight:700; text-transform:uppercase; letter-spacing:.05em;
+               color:var(--text-muted); margin:1.25rem 0 .65rem;">
+      Institutional Support Channels
+    </h3>
+    <div class="contact-grid">
+      <div class="contact-item">
+        <div class="contact-label">Student Support Services</div>
+        <div class="contact-value">
+          <a href="https://www.unisa.ac.za/sites/corporate/default/Colleges/Student-support" target="_blank">
+            UNISA Student Support
+          </a>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-label">Student Counselling</div>
+        <div class="contact-value">
+          <a href="https://www.unisa.ac.za/sites/corporate/default/Colleges/Student-support/Counselling" target="_blank">
+            UNISA Counselling
+          </a>
+        </div>
+      </div>
+      <div class="contact-item">
+        <div class="contact-label">Advocacy &amp; Support</div>
+        <div class="contact-value">
+          <a href="https://www.unisa.ac.za/sites/corporate/default/Colleges/Student-support/Advocacy" target="_blank">
+            Student Advocacy
+          </a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+{% include 'partials/bursaries.html' %}
+{% include 'partials/alt_funding.html' %}
+{% endblock %}

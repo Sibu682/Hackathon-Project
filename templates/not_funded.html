@@ -1,0 +1,98 @@
+{% extends "base.html" %}
+{% block title %}Apply for NSFAS — {{ student.personal_info.first_name }}{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>Financial Aid Overview</h1>
+  <p>{{ student.personal_info.first_name }}, here is your current status and available funding options.</p>
+</div>
+
+<!-- AI Assessment -->
+<div class="ai-summary fade-in">
+  <div class="ai-icon">🤖</div>
+  <div class="ai-body">
+    <h3>AI Funding Assessment</h3>
+    <p>{{ assessment.summary_message }}</p>
+    <span class="ai-source">
+      Assessment engine: {{ 'OpenAI' if assessment.source == 'ai' else 'Rule-based engine' }}
+    </span>
+  </div>
+</div>
+
+<!-- Main NSFAS Apply Card -->
+<div class="card fade-in" id="funding">
+  <div class="card-header">
+    <span class="card-icon">⚠</span>
+    <h2>NSFAS Application Required</h2>
+  </div>
+  <div class="card-body">
+    <div class="alert alert-warning" style="margin-bottom:1.25rem;">
+      <span class="alert-icon">⚠</span>
+      <div class="alert-body">
+        <strong>You are not currently funded by NSFAS</strong>
+        <p>
+          Our records show that you do not have an active NSFAS bursary award
+          (Application status: <strong>{{ student.funding_status.nsfas_application_status }}</strong>).
+          You may be eligible to apply.
+        </p>
+      </div>
+    </div>
+
+    <!-- Apply button -->
+    <div style="text-align:center; margin:1.5rem 0;">
+      <a href="{{ nsfas_apply_url }}" target="_blank"
+         style="display:inline-block; background:var(--unisa-blue); color:#fff;
+                padding:.85rem 2.5rem; border-radius:8px; font-size:1.05rem;
+                font-weight:700; text-decoration:none; box-shadow:var(--shadow);">
+        Apply for NSFAS →
+      </a>
+      <p style="color:var(--text-muted); font-size:.82rem; margin-top:.6rem;">
+        {{ nsfas_apply_url }}
+      </p>
+    </div>
+
+    <!-- Eligibility requirements -->
+    <h3 style="font-size:.95rem; font-weight:700; margin-bottom:.75rem; color:var(--unisa-blue);">
+      Key Application Requirements
+    </h3>
+    <ul class="elig-list">
+      <li>South African citizen or permanent resident</li>
+      <li>Combined household income of R350 000 or less per annum</li>
+      <li>Registered (or applying to register) at a public university</li>
+      <li>Valid South African ID number</li>
+      <li>Grade 12 / matric certificate</li>
+    </ul>
+
+    <!-- Contact details -->
+    <div style="margin-top:1.25rem;">
+      <h3 style="font-size:.95rem; font-weight:700; margin-bottom:.75rem; color:var(--unisa-blue);">
+        NSFAS Contact Details
+      </h3>
+      <div class="contact-grid">
+        <div class="contact-item">
+          <div class="contact-label">Helpline (toll-free)</div>
+          <div class="contact-value">{{ nsfas_helpline }}</div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-label">Email</div>
+          <div class="contact-value"><a href="mailto:{{ nsfas_email }}">{{ nsfas_email }}</a></div>
+        </div>
+        <div class="contact-item">
+          <div class="contact-label">Website</div>
+          <div class="contact-value"><a href="{{ nsfas_website }}" target="_blank">{{ nsfas_website }}</a></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="disclaimer" style="margin-top:1rem;">
+      Application windows typically open in September each year for the following academic year.
+      Check the NSFAS website for current deadlines and requirements.
+    </div>
+  </div>
+</div>
+
+{% include 'partials/student_summary.html' %}
+{% include 'partials/qualifications.html' %}
+{% include 'partials/bursaries.html' %}
+{% include 'partials/alt_funding.html' %}
+{% endblock %}
