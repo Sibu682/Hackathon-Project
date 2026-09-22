@@ -55,3 +55,18 @@ document.querySelectorAll('.sidebar-link[href^="#"]').forEach(link => {
   });
   tbody.closest('.card').querySelector('.card-body-flush').appendChild(btn);
 })();
+
+/* ── Navbar transparency on scroll ──────────────────────── */
+(function () {
+  const nav = document.querySelector('.navbar');
+  if (!nav) return;
+  const update = () => {
+    if (window.scrollY > 10) {
+      nav.classList.add('navbar--scrolled');
+    } else {
+      nav.classList.remove('navbar--scrolled');
+    }
+  };
+  window.addEventListener('scroll', update, { passive: true });
+  update(); // run on load
+})();
