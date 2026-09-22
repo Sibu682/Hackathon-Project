@@ -14,7 +14,11 @@
 
     {# Header #}
     <div class="login-header">
-      <div class="login-logo" aria-hidden="true">🎓</div>
+      <img
+        src="{{ url_for('static', filename='images/unisa_logo.png') }}"
+        alt="UNISA — University of South Africa"
+        style="height:52px; width:auto; margin-bottom:.85rem; border-radius:4px;"
+      />
       <h1>UNISA Student Portal</h1>
       <p>AI-Powered Financial Aid Assistant</p>
     </div>
@@ -89,6 +93,14 @@
     </div>
 
   </div>{# /login-card #}
+
+  {# Campus photo caption #}
+  <div style="position:fixed; bottom:.75rem; right:1rem; z-index:2;
+              font-size:.68rem; color:rgba(255,255,255,.55); text-align:right;
+              pointer-events:none;">
+    UNISA Muckleneuk Campus, Pretoria
+  </div>
+
 </div>
 </body>
 </html>

@@ -14,12 +14,12 @@
 {# ── Navbar ────────────────────────────────────────────── #}
 <nav class="navbar" role="navigation" aria-label="Main navigation">
   <a href="{{ url_for('dashboard') }}" class="navbar-brand" aria-label="UNISA Financial Aid Assistant home">
-    <div class="navbar-logo" aria-hidden="true">🎓</div>
-    <div>
-      <span class="navbar-title">{{ app_name }}</span>
-      <span class="navbar-subtitle">University of South Africa</span>
-    </div>
-    <span class="navbar-badge">AI Powered</span>
+    <img
+      src="{{ url_for('static', filename='images/unisa_logo.png') }}"
+      alt="UNISA — University of South Africa"
+      class="navbar-logo-img"
+    />
+    <span class="navbar-badge">AI Financial Aid</span>
   </a>
 
   <div class="navbar-right">

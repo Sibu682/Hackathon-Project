@@ -35,7 +35,7 @@ from data import (
 # App setup
 # ---------------------------------------------------------------------------
 
-app = Flask(__name__)
+app = Flask(__name__, static_folder=os.path.join(os.path.dirname(__file__), 'static'))
 app.secret_key = os.getenv("FLASK_SECRET_KEY", "nsfas-hackathon-dev-secret-2026")
 
 # ---------------------------------------------------------------------------
