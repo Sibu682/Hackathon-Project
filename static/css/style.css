@@ -129,7 +129,7 @@ img { max-width: 100%; }
   cursor: pointer; transition: background .18s;
   white-space: nowrap; text-decoration: none !important;
 }
-.btn-signout:hover { background: rgba(255, 255, 255, 0.159); color: #fff; }
+.btn-signout:hover { background: #172652; color: #fff; }
 
 /* Gold accent bar below navbar */
 .navbar::after {
@@ -605,7 +605,7 @@ tbody tr:hover td { background: var(--bg-subtle); }
 }
 
 .login-header {
-  background: var(--unisa-red); padding: 1.5rem 2rem 1.25rem;
+  background: #9e9899; padding: 1.5rem 2rem 1.25rem;
   text-align: center; color: #fff;
   /* White background logo strip at top */
   display: flex; flex-direction: column; align-items: center;
@@ -1074,4 +1074,198 @@ tbody tr:hover td { background: var(--bg-subtle); }
   .funding-status-bar {
     transition: none;
   }
+}
+
+/* ============================================================
+   PER-CARD NARRATIVE STREAMING
+   The .card-narrative-area sits inside each bursary/partner
+   card and shows the AI-generated suggestion word by word,
+   with the same blinking cursor as the AI Funding Assessment.
+   ============================================================ */
+
+/* ── Narrative container ────────────────────────────────────
+   Sits between the card meta row and the eligibility chips.  */
+.card-narrative-area {
+  display: flex;
+  align-items: flex-start;
+  gap: .55rem;
+  background: rgba(147, 0, 16, .04);
+  border-left: 3px solid var(--unisa-red);
+  border-radius: 0 var(--radius-sm) var(--radius-sm) 0;
+  padding: .65rem .85rem;
+  margin: .65rem 0 .85rem;
+  min-height: 2.4rem;
+  transition: background .4s ease;
+}
+
+/* Swap to a softer green tint once typing is complete */
+.card-narrative-area--done {
+  background: rgba(26, 115, 64, .04);
+  border-left-color: var(--success);
+}
+
+/* Robot icon */
+.card-narrative-icon {
+  font-size: .95rem;
+  flex-shrink: 0;
+  margin-top: .1rem;
+  opacity: .7;
+}
+
+/* "AI Agent is generating suggestions…" label */
+.card-narrative-status {
+  font-size: .72rem;
+  font-weight: 600;
+  letter-spacing: .04em;
+  text-transform: uppercase;
+  color: var(--unisa-red);
+  opacity: .75;
+  display: block;
+  margin-bottom: .2rem;
+  transition: opacity .3s ease, max-height .3s ease;
+}
+
+/* ── Typing text paragraph ──────────────────────────────────
+   Grows as tokens arrive; sits in the same flex column as
+   the status label thanks to a wrapper trick.              */
+.card-narrative-text {
+  font-size: .88rem;
+  line-height: 1.6;
+  color: var(--text);
+  margin: 0;
+  flex: 1;
+  word-break: break-word;
+  min-height: 1.2rem;
+}
+
+/* ── Per-card blinking cursor ───────────────────────────────
+   Identical to .ai-cursor but scoped to cards so it can
+   be coloured differently if needed.                        */
+.card-narrative-cursor {
+  display: inline-block;
+  width: 2px;
+  height: .9em;
+  background: var(--unisa-red);
+  border-radius: 1px;
+  margin-left: 1px;
+  vertical-align: text-bottom;
+  animation: cardCursorBlink .65s step-start infinite;
+}
+
+@keyframes cardCursorBlink {
+  0%, 100% { opacity: 1; }
+  50%       { opacity: 0; }
+}
+
+/* ── Reduced-motion overrides ───────────────────────────────*/
+@media (prefers-reduced-motion: reduce) {
+  .card-narrative-cursor { animation: none; opacity: 1; }
+  .card-narrative-area   { transition: none; }
+}
+
+/* ============================================================
+   CHECK AVAILABLE FUNDING — CTA button panel
+   Shown inside the bursaries card on page load.
+   Hidden and replaced by the live stream once clicked.
+   ============================================================ */
+
+/* ── CTA panel container ────────────────────────────────────*/
+.funding-cta {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #fafafa 0%, var(--unisa-red-light) 100%);
+  border: 1.5px dashed var(--unisa-red);
+  border-radius: var(--radius-lg);
+  margin-bottom: .25rem;
+}
+
+.funding-cta-icon {
+  font-size: 2rem;
+  flex-shrink: 0;
+  margin-top: .1rem;
+  filter: grayscale(0);
+}
+
+.funding-cta-body {
+  flex: 1;
+}
+
+.funding-cta-title {
+  font-size: 1rem;
+  font-weight: 700;
+  color: var(--unisa-red-dark);
+  margin: 0 0 .3rem;
+}
+
+.funding-cta-sub {
+  font-size: .87rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  margin: 0 0 1rem;
+}
+
+.funding-cta-hint {
+  font-size: .74rem;
+  color: var(--text-muted);
+  margin: .6rem 0 0;
+  font-style: italic;
+}
+
+/* ── The button itself ──────────────────────────────────────*/
+.btn-check-funding {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  background: var(--unisa-red);
+  color: #fff;
+  border: none;
+  border-radius: var(--radius-sm);
+  padding: .65rem 1.4rem;
+  font-size: .95rem;
+  font-weight: 700;
+  cursor: pointer;
+  letter-spacing: .01em;
+  transition: background .18s, transform .12s, box-shadow .18s;
+  box-shadow: 0 2px 8px rgba(147, 0, 16, .25);
+}
+
+.btn-check-funding:hover:not(:disabled) {
+  background: var(--unisa-red-dark);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 14px rgba(147, 0, 16, .35);
+}
+
+.btn-check-funding:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 1px 4px rgba(147, 0, 16, .2);
+}
+
+.btn-check-funding:disabled {
+  background: var(--text-muted);
+  box-shadow: none;
+  cursor: not-allowed;
+  opacity: .75;
+}
+
+.btn-check-funding-icon {
+  font-size: 1rem;
+  line-height: 1;
+}
+
+/* ── Alt-funding dormant placeholder ────────────────────────
+   Shown in the alt-funding card until the button is clicked. */
+.altfunding-waiting {
+  padding: .85rem 1rem;
+  background: var(--bg-subtle);
+  border-radius: var(--radius);
+  border-left: 3px solid var(--unisa-gold);
+  font-size: .87rem;
+  color: var(--text-muted);
+  line-height: 1.55;
+}
+
+.altfunding-waiting strong {
+  color: var(--text-secondary);
 }
