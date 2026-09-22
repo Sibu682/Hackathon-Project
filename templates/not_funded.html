@@ -1,6 +1,12 @@
 {% extends "base.html" %}
 {% block title %}Apply for NSFAS — {{ student.personal_info.first_name }} {{ student.personal_info.last_name }}{% endblock %}
 
+{% block extra_head %}
+<meta name="agent-stream-url"   content="{{ url_for('api_agent_stream') }}" />
+<meta name="funding-stream-url" content="{{ url_for('api_funding_stream') }}" />
+<meta name="app-version"        content="{{ app_version }}" />
+{% endblock %}
+
 {% block content %}
 
 <div class="page-header">
@@ -9,13 +15,17 @@
 </div>
 
 {# ── AI Assessment ────────────────────────────────────────── #}
-<div class="ai-banner fade-in">
+<div class="ai-banner fade-in" id="ai-banner" aria-live="polite" aria-atomic="false">
   <div class="ai-banner-icon" aria-hidden="true">🤖</div>
   <div class="ai-banner-body">
-    <h3>AI Funding Assessment</h3>
-    <p>{{ assessment.summary_message }}</p>
-    <span class="ai-banner-source">
-      Engine: {% if assessment.source == 'ai' %}OpenAI{% else %}Rule-based engine{% endif %}
+    <div class="ai-status-bar" id="ai-status-bar">
+      <span class="ai-status-dot" id="ai-status-dot" aria-hidden="true"></span>
+      <span class="ai-status-label" id="ai-status-label">AI Agent is analysing your data…</span>
+    </div>
+    <h3 id="ai-banner-heading" class="ai-banner-heading-hidden">AI Funding Assessment</h3>
+    <p id="ai-stream-text" class="ai-stream-text" aria-label="AI assessment result"></p>
+    <span class="ai-banner-source" id="ai-banner-source" style="display:none">
+      Engine: <span id="ai-engine-label">Analysing…</span>
     </span>
   </div>
 </div>

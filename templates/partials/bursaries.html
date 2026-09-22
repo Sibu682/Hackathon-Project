@@ -1,87 +1,92 @@
-{# ── Bursary Recommendations ───────────────────────────── #}
+{# ── Personalised Bursary Recommendations ─────────────────
+   Rendered as a skeleton shell on page load.
+   The funding SSE stream (main.js) injects real cards.
+   ──────────────────────────────────────────────────────── #}
 <div class="card card-accent-success" id="bursaries">
+
   <div class="card-header">
     <span class="card-header-icon">🎯</span>
     <h2>Personalised Bursary Recommendations</h2>
-    {% if bursaries %}
-    <span class="card-header-badge">
-      <span class="badge badge-success">{{ bursaries | length }} match{% if bursaries|length != 1 %}es{% endif %}</span>
-    </span>
-    {% endif %}
+    <span class="card-header-badge" id="bursary-count-badge"></span>
   </div>
-  <div class="card-body">
 
-    {% if bursaries %}
+  <div class="card-body" id="bursary-card-body">
 
-    <div class="alert alert-info" style="margin-bottom:1.25rem;">
-      <span class="alert-icon">ℹ</span>
-      <div class="alert-body">
-        <strong>{{ bursaries | length }} eligible bursary match{% if bursaries|length != 1 %}es{% endif %} found</strong>
-        <p>
-          Every bursary listed below has passed all eligibility checks against your profile
-          (field of study, GPA {{ student.academic_record.gpa }}%, nationality, year of study
-          {% if not student.funding_status.nsfas_funded %}and financial need{% endif %}).
-          Confirm details directly with each funder before applying.
-        </p>
-      </div>
+    {# ── Agent status bar (visible while streaming) ──────── #}
+    <div class="funding-status-bar" id="bursary-status-bar" aria-live="polite">
+      <span class="funding-status-dot funding-status-dot--pulse" id="bursary-status-dot" aria-hidden="true"></span>
+      <span class="funding-status-label" id="bursary-status-label">
+        AI Agent is finding your bursary matches…
+      </span>
     </div>
 
-    {% for b in bursaries %}
-    <div class="bursary-card">
-      <div class="bursary-card-header">
-        <div class="bursary-rank" aria-label="Rank {{ loop.index }}">{{ loop.index }}</div>
-        <h3>{{ b.name }}</h3>
-        <span class="badge badge-success" style="font-size:.78rem;">
-          R{{ '{:,}'.format(b.amount) }} / year
-        </span>
-      </div>
-      <div class="bursary-card-body">
-        <div class="bursary-meta">
-          <span>🏢 {{ b.funder }}</span>
-          <span>📅 Deadline: <strong>{{ b.deadline }}</strong></span>
-          <span>📖 {{ b.fields_of_study | join(' · ') }}</span>
-          <span>🎓 Min GPA: {{ b.min_gpa }}%</span>
-          {% if b.financial_need_required %}<span>💰 Financial need required</span>{% endif %}
-        </div>
-
-        <p class="bursary-desc">{{ b.description }}</p>
-
-        {% if b._matched_criteria %}
-        <div style="margin-top:.5rem;">
-          <p style="font-size:.7rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); margin-bottom:.4rem;">
-            Why you qualify
-          </p>
-          <div class="criteria-list">
-            {% for c in b._matched_criteria %}
-            <span class="criteria-chip">✓ {{ c }}</span>
-            {% endfor %}
+    {# ── Skeleton placeholder cards (3 × shimmer) ─────────── #}
+    <div id="bursary-skeletons" aria-hidden="true">
+      <div class="skeleton-card">
+        <div class="skeleton-card-header">
+          <div class="skeleton-circle"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton-line skeleton-line--title"></div>
+            <div class="skeleton-line skeleton-line--sub"></div>
           </div>
+          <div class="skeleton-pill"></div>
         </div>
-        {% endif %}
-
-        <a href="{{ b.application_url }}" target="_blank" rel="noopener" class="btn-apply">
-          Apply Now →
-        </a>
+        <div class="skeleton-card-body">
+          <div class="skeleton-line skeleton-line--full"></div>
+          <div class="skeleton-line skeleton-line--full"></div>
+          <div class="skeleton-line skeleton-line--short"></div>
+        </div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-card-header">
+          <div class="skeleton-circle"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton-line skeleton-line--title"></div>
+            <div class="skeleton-line skeleton-line--sub"></div>
+          </div>
+          <div class="skeleton-pill"></div>
+        </div>
+        <div class="skeleton-card-body">
+          <div class="skeleton-line skeleton-line--full"></div>
+          <div class="skeleton-line skeleton-line--full"></div>
+          <div class="skeleton-line skeleton-line--short"></div>
+        </div>
+      </div>
+      <div class="skeleton-card">
+        <div class="skeleton-card-header">
+          <div class="skeleton-circle"></div>
+          <div class="skeleton-lines">
+            <div class="skeleton-line skeleton-line--title"></div>
+            <div class="skeleton-line skeleton-line--sub"></div>
+          </div>
+          <div class="skeleton-pill"></div>
+        </div>
+        <div class="skeleton-card-body">
+          <div class="skeleton-line skeleton-line--full"></div>
+          <div class="skeleton-line skeleton-line--full"></div>
+          <div class="skeleton-line skeleton-line--short"></div>
+        </div>
       </div>
     </div>
-    {% endfor %}
 
-    {% else %}
+    {# ── Live cards injected here by JS ──────────────────── #}
+    <div id="bursary-list" role="list" aria-label="Bursary recommendations"></div>
 
-    <div class="alert alert-info">
-      <span class="alert-icon">ℹ</span>
-      <div class="alert-body">
-        <strong>No eligible bursaries found</strong>
-        <p>
-          No bursaries in our catalogue currently match your exact profile and qualification requirements.
-          Check back regularly as new bursaries are added, or visit
-          <a href="https://www.bursaries.co.za" target="_blank" rel="noopener">bursaries.co.za</a>
-          for a wider listing.
-        </p>
+    {# ── Empty-state (shown if no matches) ───────────────── #}
+    <div id="bursary-empty" style="display:none;">
+      <div class="alert alert-info">
+        <span class="alert-icon">ℹ</span>
+        <div class="alert-body">
+          <strong>No eligible bursaries found</strong>
+          <p>
+            No bursaries in our catalogue currently match your exact profile.
+            Check back regularly as new bursaries are added, or visit
+            <a href="https://www.bursaries.co.za" target="_blank" rel="noopener">bursaries.co.za</a>
+            for a wider listing.
+          </p>
+        </div>
       </div>
     </div>
-
-    {% endif %}
 
   </div>
 </div>

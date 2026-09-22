@@ -1,64 +1,84 @@
-{# ── Alternative Financial Aid ─────────────────────────── #}
-{% if show_alt_funding and alt_funding %}
+{# ── Alternative Financial Aid Opportunities ───────────────
+   Section wrapper stays visible when show_alt_funding is true.
+   The funding SSE stream (main.js) injects real cards.
+   ──────────────────────────────────────────────────────── #}
+{% if show_alt_funding %}
 <div class="card card-accent-gold" id="alt-funding">
+
   <div class="card-header">
     <span class="card-header-icon">🤝</span>
     <h2>Alternative Financial Aid Opportunities</h2>
-    <span class="card-header-badge">
-      <span class="badge badge-neutral">{{ alt_funding | length }} scheme{% if alt_funding|length != 1 %}s{% endif %}</span>
-    </span>
+    <span class="card-header-badge" id="altfunding-count-badge"></span>
   </div>
-  <div class="card-body">
 
-    <div class="alert alert-info" style="margin-bottom:1.25rem;">
+  <div class="card-body" id="altfunding-card-body">
+
+    {# ── Agent status bar ────────────────────────────────── #}
+    <div class="funding-status-bar" id="altfunding-status-bar" aria-live="polite">
+      <span class="funding-status-dot funding-status-dot--pulse" id="altfunding-status-dot" aria-hidden="true"></span>
+      <span class="funding-status-label" id="altfunding-status-label">
+        AI Agent is matching alternative funding options…
+      </span>
+    </div>
+
+    {# ── Skeleton placeholders (2 × shimmer) ─────────────── #}
+    <div id="altfunding-skeletons" aria-hidden="true">
+      <div class="skeleton-card skeleton-card--gold">
+        <div class="skeleton-card-header">
+          <div class="skeleton-lines" style="flex:1">
+            <div class="skeleton-line skeleton-line--title"></div>
+            <div class="skeleton-line skeleton-line--sub"></div>
+          </div>
+          <div class="skeleton-pill skeleton-pill--gold"></div>
+        </div>
+        <div class="skeleton-card-body">
+          <div class="skeleton-line skeleton-line--full"></div>
+          <div class="skeleton-line skeleton-line--full"></div>
+          <div class="skeleton-line skeleton-line--short"></div>
+        </div>
+      </div>
+      <div class="skeleton-card skeleton-card--gold">
+        <div class="skeleton-card-header">
+          <div class="skeleton-lines" style="flex:1">
+            <div class="skeleton-line skeleton-line--title"></div>
+            <div class="skeleton-line skeleton-line--sub"></div>
+          </div>
+          <div class="skeleton-pill skeleton-pill--gold"></div>
+        </div>
+        <div class="skeleton-card-body">
+          <div class="skeleton-line skeleton-line--full"></div>
+          <div class="skeleton-line skeleton-line--full"></div>
+          <div class="skeleton-line skeleton-line--short"></div>
+        </div>
+      </div>
+    </div>
+
+    {# ── Info alert (revealed by JS after count is known) ── #}
+    <div id="altfunding-summary-alert" style="display:none;" class="alert alert-info" style="margin-bottom:1.25rem;">
       <span class="alert-icon">ℹ</span>
       <div class="alert-body">
-        <strong>{{ alt_funding | length }} scheme{% if alt_funding|length != 1 %}s{% endif %} matched to your profile</strong>
+        <strong id="altfunding-summary-title"></strong>
         <p>
-          These opportunities are based on your financial profile and registration status.
-          UNISA does not guarantee approval. Apply as early as possible — funding is limited.
+          These opportunities are based on your financial profile and registration
+          status. UNISA does not guarantee approval. Apply as early as possible —
+          funding is limited.
         </p>
       </div>
     </div>
 
-    {% for partner in alt_funding %}
-    <div class="alt-card">
-      <div class="alt-card-header">
-        <h3>{{ partner.name }}</h3>
-        <span class="badge badge-info">{{ partner.type }}</span>
-      </div>
-      <div class="alt-card-body">
-        <p class="alt-desc">{{ partner.description }}</p>
+    {# ── Live cards injected here by JS ──────────────────── #}
+    <div id="altfunding-list" role="list" aria-label="Alternative funding opportunities"></div>
 
-        {% if partner.income_threshold %}
-        <div class="alert alert-info" style="padding:.55rem .9rem; margin-bottom:.85rem;">
-          <span class="alert-icon" style="font-size:.9rem;">💰</span>
-          <div class="alert-body">
-            <p>Income threshold: household income up to R{{ '{:,}'.format(partner.income_threshold) }} per annum</p>
-          </div>
+    {# ── Empty state ─────────────────────────────────────── #}
+    <div id="altfunding-empty" style="display:none;">
+      <div class="alert alert-info">
+        <span class="alert-icon">ℹ</span>
+        <div class="alert-body">
+          <strong>No alternative schemes matched</strong>
+          <p>No alternative funding schemes currently match your profile. Contact UNISA Student Finance for guidance.</p>
         </div>
-        {% endif %}
-
-        <p style="font-size:.72rem; font-weight:700; text-transform:uppercase; letter-spacing:.07em; color:var(--text-muted); margin-bottom:.45rem;">
-          Eligibility Requirements
-        </p>
-        <ul class="elig-list">
-          {% for req in partner.eligibility %}
-          <li>{{ req }}</li>
-          {% endfor %}
-        </ul>
-
-        <div class="alt-meta">
-          <span>📅 Deadline: <strong>{{ partner.deadline }}</strong></span>
-          <span>✉ <a href="mailto:{{ partner.contact_email }}">{{ partner.contact_email }}</a></span>
-        </div>
-
-        <a href="{{ partner.application_url }}" target="_blank" rel="noopener" class="btn-alt-apply">
-          Apply Now →
-        </a>
       </div>
     </div>
-    {% endfor %}
 
   </div>
 </div>

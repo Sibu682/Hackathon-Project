@@ -299,3 +299,23 @@ def recommend_bursaries(student: dict[str, Any]) -> list[dict[str, Any]]:
         {**b, "_score": score, "_matched_criteria": matched}
         for score, b, matched in recommendations
     ]
+
+
+# ---------------------------------------------------------------------------
+# Streaming API
+# ---------------------------------------------------------------------------
+
+def stream_bursary_recommendations(student: dict[str, Any]):
+    """
+    Generator version of recommend_bursaries().
+
+    Yields dicts:
+        {"type": "count",   "total": int}              — emitted first
+        {"type": "bursary", "index": int, "data": dict} — one per match
+        {"type": "done"}                                — emitted last
+    """
+    results = recommend_bursaries(student)
+    yield {"type": "count", "total": len(results)}
+    for i, b in enumerate(results):
+        yield {"type": "bursary", "index": i, "data": b}
+    yield {"type": "done"}
