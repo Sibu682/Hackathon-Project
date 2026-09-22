@@ -467,3 +467,165 @@ def _stream_rule_based_assessment(
         yield {"type": "token", "token": word + " "}
 
     yield {"type": "result", "result": result}
+
+
+# ---------------------------------------------------------------------------
+# Per-item narrative streaming  (bursaries & alternative funding)
+# ---------------------------------------------------------------------------
+
+_NARRATIVE_SYSTEM_PROMPT = """\
+You are an AI Financial Aid Assistant for the University of South Africa (UNISA).
+Write a single short paragraph (2-3 sentences, plain English, no markdown) that
+explains why this specific bursary or funding scheme is a good match for the
+student. Be direct, warm and specific — mention the student's name, their field
+of study or GPA where relevant, and what the funding covers. Never invent facts
+not present in the data. Do not use bullet points or headings.
+"""
+
+
+def stream_item_narrative(
+    student: dict[str, Any],
+    item: dict[str, Any],
+    item_type: str = "bursary",
+) -> Generator[dict[str, Any], None, None]:
+    """Stream a personalised narrative sentence for a single bursary or
+    alternative-funding partner, word by word.
+
+    Yields:
+        {"type": "token",  "token": str}   — one word chunk
+        {"type": "done"}                   — signals completion
+
+    Falls back to a deterministic sentence when no Groq key is available.
+    """
+    client = _get_openai_client()
+    if client:
+        yield from _stream_ai_narrative(client, student, item, item_type)
+    else:
+        yield from _stream_rule_narrative(student, item, item_type)
+
+
+def _build_narrative_prompt(
+    student: dict[str, Any],
+    item: dict[str, Any],
+    item_type: str,
+) -> str:
+    name   = student["personal_info"]["first_name"]
+    gpa    = student["academic_record"].get("gpa", "N/A")
+    field  = ", ".join(
+        q["qualification_name"]
+        for q in student["academic_record"].get("registered_qualifications", [])
+    )
+    income = student["financial_profile"].get("household_income", 0)
+
+    if item_type == "bursary":
+        criteria = "; ".join(item.get("_matched_criteria", []))
+        return (
+            f"Student: {name}, studying {field}, GPA {gpa}%, "
+            f"household income R{income:,}.\n"
+            f"Bursary: {item['name']} by {item['funder']}. "
+            f"Value: R{item['amount']:,}/year. Deadline: {item['deadline']}.\n"
+            f"Why they qualify: {criteria or 'meets all eligibility requirements'}.\n"
+            f"Description: {item['description']}\n\n"
+            f"Write a warm, specific 2-3 sentence explanation of why this bursary "
+            f"is a great match for {name}."
+        )
+    else:  # partner / alt-funding
+        elig = "; ".join(item.get("eligibility", []))
+        return (
+            f"Student: {name}, studying {field}, GPA {gpa}%, "
+            f"household income R{income:,}.\n"
+            f"Funding scheme: {item['name']} ({item['type']}). "
+            f"Deadline: {item.get('deadline', 'rolling')}.\n"
+            f"Eligibility: {elig}.\n"
+            f"Description: {item['description']}\n\n"
+            f"Write a warm, specific 2-3 sentence explanation of why this scheme "
+            f"is relevant for {name} right now."
+        )
+
+
+def _stream_ai_narrative(
+    client,
+    student: dict[str, Any],
+    item: dict[str, Any],
+    item_type: str,
+) -> Generator[dict[str, Any], None, None]:
+    """Call Groq with streaming=True for free-form text (no tool calling).
+
+    Falls back to the rule-based narrative when:
+      - The model returns empty content (some restricted keys)
+      - Any exception occurs during streaming
+    """
+    try:
+        stream = client.chat.completions.create(
+            model=os.getenv("AI_MODEL", "openai/gpt-oss-120b"),
+            messages=[
+                {"role": "system", "content": _NARRATIVE_SYSTEM_PROMPT},
+                {"role": "user",   "content": _build_narrative_prompt(student, item, item_type)},
+            ],
+            temperature=0.45,
+            max_tokens=120,
+            stream=True,
+        )
+
+        buffer = ""
+        emitted_any = False
+
+        for chunk in stream:
+            delta = chunk.choices[0].delta if chunk.choices else None
+            if not delta:
+                continue
+            fragment = getattr(delta, "content", None) or ""
+            if not fragment:
+                continue
+
+            buffer += fragment
+            # Emit complete words whenever we see a space boundary
+            while " " in buffer:
+                space_idx = buffer.index(" ")
+                word = buffer[:space_idx]
+                buffer = buffer[space_idx + 1:]
+                if word:
+                    yield {"type": "token", "token": word + " "}
+                    emitted_any = True
+
+        # Flush any remaining buffer content
+        if buffer.strip():
+            for word in buffer.split():
+                yield {"type": "token", "token": word + " "}
+                emitted_any = True
+
+        # If model returned nothing (restricted key / empty response), use rule fallback
+        if not emitted_any:
+            yield from _stream_rule_narrative(student, item, item_type)
+            return
+
+        yield {"type": "done"}
+
+    except Exception as exc:
+        console.print(f"[yellow]Narrative stream failed ({exc}), using fallback.[/yellow]")
+        yield from _stream_rule_narrative(student, item, item_type)
+
+
+def _stream_rule_narrative(
+    student: dict[str, Any],
+    item: dict[str, Any],
+    item_type: str,
+) -> Generator[dict[str, Any], None, None]:
+    """Deterministic narrative fallback — emits the catalogue description word
+    by word with a small delay to preserve the typing UX."""
+    name = student["personal_info"]["first_name"]
+
+    if item_type == "bursary":
+        criteria = item.get("_matched_criteria", [])
+        why = (f"You qualify because: {'; '.join(criteria)}." if criteria
+               else "You meet all eligibility requirements.")
+        text = f"{item['description']} {why}"
+    else:
+        text = item["description"]
+
+    words = text.split()
+    for i, word in enumerate(words):
+        time.sleep(0.04 if i % 4 != 0 else 0.07)
+        yield {"type": "token", "token": word + " "}
+
+    yield {"type": "done"}

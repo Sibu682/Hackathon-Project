@@ -1,6 +1,5 @@
 {# ── Alternative Financial Aid Opportunities ───────────────
-   Section wrapper stays visible when show_alt_funding is true.
-   The funding SSE stream (main.js) injects real cards.
+   Dormant on load. Streams only after the button is clicked.
    ──────────────────────────────────────────────────────── #}
 {% if show_alt_funding %}
 <div class="card card-accent-gold" id="alt-funding">
@@ -13,72 +12,72 @@
 
   <div class="card-body" id="altfunding-card-body">
 
-    {# ── Agent status bar ────────────────────────────────── #}
-    <div class="funding-status-bar" id="altfunding-status-bar" aria-live="polite">
-      <span class="funding-status-dot funding-status-dot--pulse" id="altfunding-status-dot" aria-hidden="true"></span>
-      <span class="funding-status-label" id="altfunding-status-label">
-        AI Agent is matching alternative funding options…
-      </span>
+    {# ── Dormant placeholder — replaced when stream starts ─ #}
+    <div id="altfunding-waiting" class="altfunding-waiting">
+      <p>Results will appear here once you click
+         <strong>Check Available Funding</strong> above.</p>
     </div>
 
-    {# ── Skeleton placeholders (2 × shimmer) ─────────────── #}
-    <div id="altfunding-skeletons" aria-hidden="true">
-      <div class="skeleton-card skeleton-card--gold">
-        <div class="skeleton-card-header">
-          <div class="skeleton-lines" style="flex:1">
-            <div class="skeleton-line skeleton-line--title"></div>
-            <div class="skeleton-line skeleton-line--sub"></div>
+    {# ── Everything below hidden until button clicked ─────── #}
+    <div id="altfunding-stream-body" style="display:none;">
+
+      {# Section status indicator #}
+      <div class="funding-status-bar" id="altfunding-status-bar" aria-live="polite">
+        <span class="funding-status-dot funding-status-dot--pulse"
+              id="altfunding-status-dot" aria-hidden="true"></span>
+        <span class="funding-status-label" id="altfunding-status-label">
+          AI Agent is generating suggestions…
+        </span>
+      </div>
+
+      {# Skeleton shimmer cards #}
+      <div id="altfunding-skeletons" aria-hidden="true">
+        {% for _ in range(2) %}
+        <div class="skeleton-card skeleton-card--gold">
+          <div class="skeleton-card-header">
+            <div class="skeleton-lines" style="flex:1">
+              <div class="skeleton-line skeleton-line--title"></div>
+              <div class="skeleton-line skeleton-line--sub"></div>
+            </div>
+            <div class="skeleton-pill skeleton-pill--gold"></div>
           </div>
-          <div class="skeleton-pill skeleton-pill--gold"></div>
-        </div>
-        <div class="skeleton-card-body">
-          <div class="skeleton-line skeleton-line--full"></div>
-          <div class="skeleton-line skeleton-line--full"></div>
-          <div class="skeleton-line skeleton-line--short"></div>
-        </div>
-      </div>
-      <div class="skeleton-card skeleton-card--gold">
-        <div class="skeleton-card-header">
-          <div class="skeleton-lines" style="flex:1">
-            <div class="skeleton-line skeleton-line--title"></div>
-            <div class="skeleton-line skeleton-line--sub"></div>
+          <div class="skeleton-card-body">
+            <div class="skeleton-line skeleton-line--full"></div>
+            <div class="skeleton-line skeleton-line--full"></div>
+            <div class="skeleton-line skeleton-line--short"></div>
           </div>
-          <div class="skeleton-pill skeleton-pill--gold"></div>
         </div>
-        <div class="skeleton-card-body">
-          <div class="skeleton-line skeleton-line--full"></div>
-          <div class="skeleton-line skeleton-line--full"></div>
-          <div class="skeleton-line skeleton-line--short"></div>
-        </div>
+        {% endfor %}
       </div>
-    </div>
 
-    {# ── Info alert (revealed by JS after count is known) ── #}
-    <div id="altfunding-summary-alert" style="display:none;" class="alert alert-info" style="margin-bottom:1.25rem;">
-      <span class="alert-icon">ℹ</span>
-      <div class="alert-body">
-        <strong id="altfunding-summary-title"></strong>
-        <p>
-          These opportunities are based on your financial profile and registration
-          status. UNISA does not guarantee approval. Apply as early as possible —
-          funding is limited.
-        </p>
-      </div>
-    </div>
-
-    {# ── Live cards injected here by JS ──────────────────── #}
-    <div id="altfunding-list" role="list" aria-label="Alternative funding opportunities"></div>
-
-    {# ── Empty state ─────────────────────────────────────── #}
-    <div id="altfunding-empty" style="display:none;">
-      <div class="alert alert-info">
+      {# Summary alert #}
+      <div id="altfunding-summary-alert" style="display:none;"
+           class="alert alert-info">
         <span class="alert-icon">ℹ</span>
         <div class="alert-body">
-          <strong>No alternative schemes matched</strong>
-          <p>No alternative funding schemes currently match your profile. Contact UNISA Student Finance for guidance.</p>
+          <strong id="altfunding-summary-title"></strong>
+          <p>Based on your financial profile and registration status.
+             Apply as early as possible — funding is limited.</p>
         </div>
       </div>
-    </div>
+
+      {# Live cards injected by JS #}
+      <div id="altfunding-list" role="list"
+           aria-label="Alternative funding opportunities"></div>
+
+      {# Empty state #}
+      <div id="altfunding-empty" style="display:none;">
+        <div class="alert alert-info">
+          <span class="alert-icon">ℹ</span>
+          <div class="alert-body">
+            <strong>No alternative schemes matched</strong>
+            <p>No alternative funding schemes currently match your profile.
+               Contact UNISA Student Finance for guidance.</p>
+          </div>
+        </div>
+      </div>
+
+    </div>{# /altfunding-stream-body #}
 
   </div>
 </div>

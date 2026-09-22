@@ -278,21 +278,25 @@ document.querySelectorAll('.sidebar-link[href^="#"]').forEach(link => {
 
 /* ═══════════════════════════════════════════════════════════
    FUNDING STREAM — Server-Sent Events client
-   Connects to /api/funding/stream on dashboard load and builds
-   bursary + alternative funding cards progressively.
+   Word-by-word AI narrative per card, matching the AI
+   Funding Assessment typing UX.
+
+   SSE protocol:
+     status     — bursaries_start | altfunding_start | complete | error
+     count      — {section, total}
+     card_start — {section, index, data}   card shell
+     token      — {section, index, token}  one word
+     card_end   — {section, index}         narrative complete
    ═══════════════════════════════════════════════════════════ */
 (function () {
   'use strict';
 
-  // ── Read SSE URL ──────────────────────────────────────────
   const fundingUrl = (
     document.querySelector('meta[name="funding-stream-url"]') || {}
   ).content;
+  if (!fundingUrl) return;
 
-  if (!fundingUrl) return;   // not on a dashboard page
-
-  // ── DOM refs — bursaries section ─────────────────────────
-  const bursaryStatusBar   = document.getElementById('bursary-status-bar');
+  // ── DOM refs ──────────────────────────────────────────────
   const bursaryStatusDot   = document.getElementById('bursary-status-dot');
   const bursaryStatusLabel = document.getElementById('bursary-status-label');
   const bursarySkeletons   = document.getElementById('bursary-skeletons');
@@ -300,8 +304,6 @@ document.querySelectorAll('.sidebar-link[href^="#"]').forEach(link => {
   const bursaryEmpty       = document.getElementById('bursary-empty');
   const bursaryCountBadge  = document.getElementById('bursary-count-badge');
 
-  // ── DOM refs — alt-funding section ───────────────────────
-  const altStatusBar       = document.getElementById('altfunding-status-bar');
   const altStatusDot       = document.getElementById('altfunding-status-dot');
   const altStatusLabel     = document.getElementById('altfunding-status-label');
   const altSkeletons       = document.getElementById('altfunding-skeletons');
@@ -311,12 +313,14 @@ document.querySelectorAll('.sidebar-link[href^="#"]').forEach(link => {
   const altSummaryAlert    = document.getElementById('altfunding-summary-alert');
   const altSummaryTitle    = document.getElementById('altfunding-summary-title');
 
-  // ── Helpers ───────────────────────────────────────────────
+  // ── State — one entry per active card ─────────────────────
+  // cardState[section][index] = { el, narrativeEl, cursorEl, tokenBuf, painting }
+  const cardState = { bursaries: {}, altfunding: {} };
+  let bursaryTotal = null;
+  let altTotal     = null;
 
-  function fmt(n) {
-    // Format a number as a ZAR amount string e.g. 60000 → "60,000"
-    return Number(n).toLocaleString('en-ZA');
-  }
+  // ── Utilities ─────────────────────────────────────────────
+  function fmt(n) { return Number(n).toLocaleString('en-ZA'); }
 
   function escHtml(str) {
     const d = document.createElement('div');
@@ -324,48 +328,44 @@ document.querySelectorAll('.sidebar-link[href^="#"]').forEach(link => {
     return d.innerHTML;
   }
 
-  /** Mark a status bar as done: stop pulse, show tick, fade out. */
-  function markSectionDone(dot, label, text) {
+  function removeSkeleton(skeletonEl) {
+    if (!skeletonEl || skeletonEl.dataset.removed) return;
+    skeletonEl.dataset.removed = '1';
+    skeletonEl.classList.add('skeleton-fade-out');
+    setTimeout(() => { skeletonEl.style.display = 'none'; }, 300);
+  }
+
+  function markDone(dot, label, text) {
     if (!dot) return;
     dot.classList.remove('funding-status-dot--pulse');
     dot.classList.add('funding-status-dot--done');
     if (label) label.textContent = text || 'Done';
     const bar = dot.closest('.funding-status-bar');
-    if (bar) {
-      setTimeout(() => bar.classList.add('funding-status-bar--done'), 600);
-    }
+    if (bar) setTimeout(() => bar.classList.add('funding-status-bar--done'), 700);
   }
 
-  /** Mark a status bar as errored. */
-  function markSectionError(dot, label) {
+  function markError(dot, label) {
     if (!dot) return;
     dot.classList.remove('funding-status-dot--pulse');
     dot.classList.add('funding-status-dot--error');
     if (label) label.textContent = 'Could not load — please refresh';
   }
 
-  // ── Card builders ─────────────────────────────────────────
+  // ── Card DOM builders ─────────────────────────────────────
+  // Each card has a .card-narrative-area where tokens stream in,
+  // plus a blinking cursor that follows the typing.
 
-  /**
-   * Build a full bursary card DOM element from SSE data.
-   * Mirrors the markup in the old static bursaries.html Jinja loop.
-   */
   function buildBursaryCard(b, rank) {
     const card = document.createElement('div');
     card.className = 'bursary-card funding-card-reveal';
     card.setAttribute('role', 'listitem');
 
-    // Matched criteria chips
-    const criteria = (b._matched_criteria || []);
-    const chipsHtml = criteria.length
-      ? `<div class="criteria-list" style="margin-top:.5rem;">
-           ${criteria.map(c => `<span class="criteria-chip">✓ ${escHtml(c)}</span>`).join('')}
-         </div>`
-      : '';
-
-    // Financial need badge
     const needBadge = b.financial_need_required
-      ? `<span>💰 Financial need required</span>` : '';
+      ? '<span>💰 Financial need required</span>' : '';
+    const criteria  = b._matched_criteria || [];
+    const chipsHtml = criteria.map(c =>
+      `<span class="criteria-chip">✓ ${escHtml(c)}</span>`
+    ).join('');
 
     card.innerHTML = `
       <div class="bursary-card-header">
@@ -380,19 +380,25 @@ document.querySelectorAll('.sidebar-link[href^="#"]').forEach(link => {
           <span>🏢 ${escHtml(b.funder)}</span>
           <span>📅 Deadline: <strong>${escHtml(b.deadline)}</strong></span>
           <span>📖 ${escHtml((b.fields_of_study || []).join(' · '))}</span>
-          <span>🎓 Min GPA: ${escHtml(b.min_gpa)}%</span>
+          <span>🎓 Min Average: ${escHtml(b.min_gpa)}%</span>
           ${needBadge}
         </div>
-        <p class="bursary-desc">${escHtml(b.description)}</p>
-        ${criteria.length
-          ? `<div style="margin-top:.5rem;">
-               <p style="font-size:.7rem;font-weight:700;text-transform:uppercase;
-                         letter-spacing:.07em;color:var(--text-muted);margin-bottom:.4rem;">
-                 Why you qualify
-               </p>
-               ${chipsHtml}
-             </div>`
-          : ''}
+
+        <div class="card-narrative-area" aria-live="polite" aria-label="AI suggestion">
+          <span class="card-narrative-icon" aria-hidden="true">🤖</span>
+          <span class="card-narrative-status">AI Agent is generating suggestions…</span>
+          <p class="card-narrative-text"></p>
+        </div>
+
+        ${criteria.length ? `
+        <div style="margin-top:.5rem;">
+          <p style="font-size:.7rem;font-weight:700;text-transform:uppercase;
+                    letter-spacing:.07em;color:var(--text-muted);margin-bottom:.4rem;">
+            Why you qualify
+          </p>
+          <div class="criteria-list">${chipsHtml}</div>
+        </div>` : ''}
+
         <a href="${escHtml(b.application_url)}" target="_blank" rel="noopener"
            class="btn-apply">Apply Now →</a>
       </div>`;
@@ -400,28 +406,21 @@ document.querySelectorAll('.sidebar-link[href^="#"]').forEach(link => {
     return card;
   }
 
-  /**
-   * Build a full alternative-funding partner card DOM element.
-   * Mirrors the markup in the old static alt_funding.html Jinja loop.
-   */
   function buildPartnerCard(p) {
     const card = document.createElement('div');
     card.className = 'alt-card funding-card-reveal';
     card.setAttribute('role', 'listitem');
 
     const incomeHtml = p.income_threshold
-      ? `<div class="alert alert-info"
-              style="padding:.55rem .9rem;margin-bottom:.85rem;">
+      ? `<div class="alert alert-info" style="padding:.55rem .9rem;margin-bottom:.85rem;">
            <span class="alert-icon" style="font-size:.9rem;">💰</span>
            <div class="alert-body">
-             <p>Income threshold: household income up to
-                R${fmt(p.income_threshold)} per annum</p>
+             <p>Income threshold: up to R${fmt(p.income_threshold)} per annum</p>
            </div>
          </div>` : '';
 
     const eligHtml = (p.eligibility || [])
-      .map(req => `<li>${escHtml(req)}</li>`)
-      .join('');
+      .map(r => `<li>${escHtml(r)}</li>`).join('');
 
     card.innerHTML = `
       <div class="alt-card-header">
@@ -429,7 +428,13 @@ document.querySelectorAll('.sidebar-link[href^="#"]').forEach(link => {
         <span class="badge badge-info">${escHtml(p.type)}</span>
       </div>
       <div class="alt-card-body">
-        <p class="alt-desc">${escHtml(p.description)}</p>
+
+        <div class="card-narrative-area" aria-live="polite" aria-label="AI suggestion">
+          <span class="card-narrative-icon" aria-hidden="true">🤖</span>
+          <span class="card-narrative-status">AI Agent is generating suggestions…</span>
+          <p class="card-narrative-text"></p>
+        </div>
+
         ${incomeHtml}
         <p style="font-size:.72rem;font-weight:700;text-transform:uppercase;
                   letter-spacing:.07em;color:var(--text-muted);margin-bottom:.45rem;">
@@ -447,54 +452,123 @@ document.querySelectorAll('.sidebar-link[href^="#"]').forEach(link => {
     return card;
   }
 
-  // ── Section state ─────────────────────────────────────────
-  let bursaryTotal = null;
-  let altTotal     = null;
+  // ── Per-card token painter (same rAF queue as AI banner) ──
+  function getState(section, index) {
+    return cardState[section] && cardState[section][index];
+  }
 
-  // ── SSE event handlers ────────────────────────────────────
+  function schedulePaintCard(state) {
+    if (state.painting) return;
+    state.painting = true;
+    requestAnimationFrame(() => paintNextCardToken(state));
+  }
 
-  function handleStatus(status) {
-    switch (status) {
+  function paintNextCardToken(state) {
+    state.painting = false;
+    if (!state.tokenBuf.length) return;
 
-      case 'bursaries_start':
-        // Skeletons already visible — nothing extra needed
-        break;
+    const token = state.tokenBuf.shift();
 
-      case 'altfunding_start':
-        // Bursary section is fully loaded — finalise it
-        finaliseBursarySection();
-        break;
+    // Remove cursor, append text, re-add cursor
+    if (state.cursorEl) state.cursorEl.remove();
+    state.narrativeEl.appendChild(document.createTextNode(token));
 
-      case 'complete':
-        finaliseAltSection();
-        break;
+    if (!state.done) {
+      state.cursorEl = document.createElement('span');
+      state.cursorEl.className = 'card-narrative-cursor';
+      state.cursorEl.setAttribute('aria-hidden', 'true');
+      state.narrativeEl.appendChild(state.cursorEl);
+    }
 
-      case 'error':
-        markSectionError(bursaryStatusDot, bursaryStatusLabel);
-        markSectionError(altStatusDot, altStatusLabel);
-        if (bursarySkeletons) bursarySkeletons.style.display = 'none';
-        if (altSkeletons)     altSkeletons.style.display = 'none';
-        break;
+    if (state.tokenBuf.length) {
+      setTimeout(() => schedulePaintCard(state), 30);
     }
   }
 
+  // ── SSE: card_start ───────────────────────────────────────
+  function handleCardStart(payload) {
+    const { section, index, data } = payload;
+    const list = section === 'bursaries' ? bursaryList : altList;
+    const skel = section === 'bursaries' ? bursarySkeletons : altSkeletons;
+    if (!list) return;
+
+    // Remove skeletons on first real card
+    if (index === 0) removeSkeleton(skel);
+
+    // Build and append the card
+    const card = section === 'bursaries'
+      ? buildBursaryCard(data, index + 1)
+      : buildPartnerCard(data);
+
+    card.style.animationDelay = `${index * 60}ms`;
+    list.appendChild(card);
+
+    // Register state for token painting
+    const narrativeEl = card.querySelector('.card-narrative-text');
+    const statusEl    = card.querySelector('.card-narrative-status');
+
+    // Hide the static status label once we start typing
+    if (statusEl) {
+      statusEl.style.opacity = '0';
+      statusEl.style.maxHeight = '0';
+      statusEl.style.overflow = 'hidden';
+    }
+
+    cardState[section][index] = {
+      el:          card,
+      narrativeEl: narrativeEl,
+      statusEl:    statusEl,
+      cursorEl:    null,
+      tokenBuf:    [],
+      painting:    false,
+      done:        false,
+    };
+  }
+
+  // ── SSE: token ────────────────────────────────────────────
+  function handleToken(payload) {
+    const state = getState(payload.section, payload.index);
+    if (!state) return;
+    state.tokenBuf.push(payload.token);
+    schedulePaintCard(state);
+  }
+
+  // ── SSE: card_end ─────────────────────────────────────────
+  function handleCardEnd(payload) {
+    const state = getState(payload.section, payload.index);
+    if (!state) return;
+
+    // Wait for token queue to drain then remove cursor
+    state.done = true;
+    const waitDrain = setInterval(() => {
+      if (state.tokenBuf.length === 0) {
+        clearInterval(waitDrain);
+        if (state.cursorEl) {
+          state.cursorEl.remove();
+          state.cursorEl = null;
+        }
+        // Add a subtle done class to the narrative area
+        const area = state.el.querySelector('.card-narrative-area');
+        if (area) area.classList.add('card-narrative-area--done');
+      }
+    }, 50);
+  }
+
+  // ── SSE: count ────────────────────────────────────────────
   function handleCount(payload) {
     if (payload.section === 'bursaries') {
       bursaryTotal = payload.total;
-      // Update count badge immediately
       if (bursaryCountBadge) {
         const n = payload.total;
         bursaryCountBadge.innerHTML =
           `<span class="badge badge-success">${n} match${n !== 1 ? 'es' : ''}</span>`;
       }
       if (bursaryStatusLabel) {
-        bursaryStatusLabel.textContent =
-          payload.total > 0
-            ? `Found ${payload.total} eligible bursary match${payload.total !== 1 ? 'es' : ''}…`
-            : 'Checking bursary catalogue…';
+        bursaryStatusLabel.textContent = payload.total > 0
+          ? `AI Agent is generating ${payload.total} suggestion${payload.total !== 1 ? 's' : ''}…`
+          : 'Checking bursary catalogue…';
       }
     }
-
     if (payload.section === 'altfunding') {
       altTotal = payload.total;
       if (altCountBadge) {
@@ -502,114 +576,86 @@ document.querySelectorAll('.sidebar-link[href^="#"]').forEach(link => {
         altCountBadge.innerHTML =
           `<span class="badge badge-neutral">${n} scheme${n !== 1 ? 's' : ''}</span>`;
       }
-      // Reveal the summary alert now that we know the count
       if (altSummaryAlert && altSummaryTitle && payload.total > 0) {
-        const n = payload.total;
         altSummaryTitle.textContent =
-          `${n} scheme${n !== 1 ? 's' : ''} matched to your profile`;
+          `${payload.total} scheme${payload.total !== 1 ? 's' : ''} matched to your profile`;
         altSummaryAlert.style.display = '';
         altSummaryAlert.classList.add('funding-card-reveal');
       }
       if (altStatusLabel) {
-        altStatusLabel.textContent =
-          payload.total > 0
-            ? `Found ${payload.total} alternative funding scheme${payload.total !== 1 ? 's' : ''}…`
-            : 'Checking alternative funding options…';
+        altStatusLabel.textContent = payload.total > 0
+          ? `AI Agent is generating ${payload.total} suggestion${payload.total !== 1 ? 's' : ''}…`
+          : 'Checking alternative funding options…';
       }
     }
   }
 
-  function handleBursary(payload) {
-    if (!bursaryList) return;
-
-    // Remove skeletons on the first real card
-    if (payload.index === 0 && bursarySkeletons) {
-      bursarySkeletons.classList.add('skeleton-fade-out');
-      setTimeout(() => {
-        bursarySkeletons.style.display = 'none';
-        bursarySkeletons.classList.remove('skeleton-fade-out');
-      }, 300);
+  // ── SSE: status ───────────────────────────────────────────
+  function handleStatus(status) {
+    if (status === 'altfunding_start') {
+      // Bursaries done
+      removeSkeleton(bursarySkeletons);
+      if (bursaryTotal === 0 && bursaryEmpty) bursaryEmpty.style.display = '';
+      markDone(bursaryStatusDot, bursaryStatusLabel,
+        bursaryTotal === 0 ? 'No bursary matches found'
+          : `${bursaryTotal} bursary suggestion${bursaryTotal !== 1 ? 's' : ''} generated`);
     }
-
-    const card = buildBursaryCard(payload.data, payload.index + 1);
-    // Stagger the animation delay so cards cascade in
-    card.style.animationDelay = `${payload.index * 80}ms`;
-    bursaryList.appendChild(card);
+    if (status === 'complete') {
+      removeSkeleton(altSkeletons);
+      if (altTotal === 0) {
+        if (altSummaryAlert) altSummaryAlert.style.display = 'none';
+        if (altEmpty)        altEmpty.style.display = '';
+      }
+      markDone(altStatusDot, altStatusLabel,
+        altTotal === 0 ? 'No alternative schemes matched'
+          : `${altTotal} alternative suggestion${altTotal !== 1 ? 's' : ''} generated`);
+    }
+    if (status === 'error') {
+      removeSkeleton(bursarySkeletons);
+      removeSkeleton(altSkeletons);
+      markError(bursaryStatusDot, bursaryStatusLabel);
+      markError(altStatusDot, altStatusLabel);
+    }
   }
 
-  function handlePartner(payload) {
-    if (!altList) return;
+  // ── Button click — opens SSE connection on demand ────────
+  // Nothing loads automatically. The EventSource is only opened
+  // when the student explicitly clicks "Check Available Funding".
 
-    // Remove alt skeletons on first real card
-    if (payload.index === 0 && altSkeletons) {
-      altSkeletons.classList.add('skeleton-fade-out');
-      setTimeout(() => {
-        altSkeletons.style.display = 'none';
-        altSkeletons.classList.remove('skeleton-fade-out');
-      }, 300);
-    }
+  const btn            = document.getElementById('btn-check-funding');
+  const ctaPanel       = document.getElementById('funding-cta');
+  const streamBody     = document.getElementById('funding-stream-body');
+  const altWaiting     = document.getElementById('altfunding-waiting');
+  const altStreamBody  = document.getElementById('altfunding-stream-body');
 
-    const card = buildPartnerCard(payload.data);
-    card.style.animationDelay = `${payload.index * 80}ms`;
-    altList.appendChild(card);
+  function openFundingStream() {
+    // 1. Hide the CTA button panel, reveal the streaming bodies
+    if (ctaPanel)      ctaPanel.style.display      = 'none';
+    if (streamBody)    streamBody.style.display     = '';
+    if (altWaiting)    altWaiting.style.display     = 'none';
+    if (altStreamBody) altStreamBody.style.display  = '';
+
+    // 2. Open the SSE connection
+    const fundingSSE = new EventSource(fundingUrl);
+
+    fundingSSE.addEventListener('status',     e => {
+      handleStatus(e.data.trim());
+      if (e.data.trim() === 'complete' || e.data.trim() === 'error') fundingSSE.close();
+    });
+    fundingSSE.addEventListener('count',      e => { try { handleCount(JSON.parse(e.data));     } catch(_){} });
+    fundingSSE.addEventListener('card_start', e => { try { handleCardStart(JSON.parse(e.data)); } catch(_){} });
+    fundingSSE.addEventListener('token',      e => { try { handleToken(JSON.parse(e.data));      } catch(_){} });
+    fundingSSE.addEventListener('card_end',   e => { try { handleCardEnd(JSON.parse(e.data));    } catch(_){} });
+    fundingSSE.onerror = () => { fundingSSE.close(); handleStatus('error'); };
   }
 
-  // ── Section finalisation ──────────────────────────────────
-
-  function finaliseBursarySection() {
-    if (bursarySkeletons) bursarySkeletons.style.display = 'none';
-
-    if (bursaryTotal === 0) {
-      if (bursaryEmpty) bursaryEmpty.style.display = '';
-    }
-
-    const label = bursaryTotal === 0
-      ? 'No bursary matches found'
-      : `${bursaryTotal} bursary match${bursaryTotal !== 1 ? 'es' : ''} loaded`;
-
-    markSectionDone(bursaryStatusDot, bursaryStatusLabel, label);
+  if (btn) {
+    btn.addEventListener('click', function () {
+      // Disable button immediately so it can't be double-clicked
+      btn.disabled = true;
+      btn.textContent = 'Searching…';
+      openFundingStream();
+    });
   }
-
-  function finaliseAltSection() {
-    if (altSkeletons) altSkeletons.style.display = 'none';
-
-    if (altTotal === 0) {
-      if (altSummaryAlert) altSummaryAlert.style.display = 'none';
-      if (altEmpty)        altEmpty.style.display = '';
-    }
-
-    const label = altTotal === 0
-      ? 'No alternative schemes matched'
-      : `${altTotal} scheme${altTotal !== 1 ? 's' : ''} loaded`;
-
-    markSectionDone(altStatusDot, altStatusLabel, label);
-  }
-
-  // ── Open SSE connection ───────────────────────────────────
-  const fundingSSE = new EventSource(fundingUrl);
-
-  fundingSSE.addEventListener('status', function (e) {
-    handleStatus(e.data.trim());
-    if (e.data.trim() === 'complete' || e.data.trim() === 'error') {
-      fundingSSE.close();
-    }
-  });
-
-  fundingSSE.addEventListener('count', function (e) {
-    try { handleCount(JSON.parse(e.data)); } catch (_) {}
-  });
-
-  fundingSSE.addEventListener('bursary', function (e) {
-    try { handleBursary(JSON.parse(e.data)); } catch (_) {}
-  });
-
-  fundingSSE.addEventListener('partner', function (e) {
-    try { handlePartner(JSON.parse(e.data)); } catch (_) {}
-  });
-
-  fundingSSE.onerror = function () {
-    fundingSSE.close();
-    handleStatus('error');
-  };
 
 })();

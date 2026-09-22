@@ -266,18 +266,19 @@ def api_agent_stream():
 @app.route("/api/funding/stream")
 def api_funding_stream():
     """Server-Sent Events endpoint — streams bursary and alt-funding results
-    card-by-card so the frontend can render them progressively.
+    with word-by-word AI narrative per card.
 
-    Event types emitted:
-        status   — "bursaries_start" | "altfunding_start" | "complete" | "error"
-        bursary  — JSON payload for a single bursary card (index + data)
-        partner  — JSON payload for a single alt-funding partner card
-        count    — {"section": "bursaries"|"altfunding", "total": int}
+    Event protocol:
+        status      — "bursaries_start" | "altfunding_start" | "complete" | "error"
+        count       — {"section": "bursaries"|"altfunding", "total": int}
+        card_start  — {"section": str, "index": int, "data": dict}  shell metadata
+        token       — {"section": str, "index": int, "token": str}  one word
+        card_end    — {"section": str, "index": int}                narrative complete
     """
     import json as _json
-    import time as _time
-
+    from src.ai_agent import stream_item_narrative
     from data import STUDENT_DATABASE_BY_ID
+
     student_id = session.get("student_id")
     if not student_id:
         return jsonify({"error": "Not authenticated"}), 401
@@ -290,30 +291,48 @@ def api_funding_stream():
             # ── Bursaries ────────────────────────────────────────────────
             yield "event: status\ndata: bursaries_start\n\n"
 
-            bursary_count = 0
-            for chunk in stream_bursary_recommendations(student):
+            bursaries = stream_bursary_recommendations(student)
+            bursary_items = []
+
+            for chunk in bursaries:
                 ctype = chunk["type"]
 
                 if ctype == "count":
-                    bursary_count = chunk["total"]
-                    payload = _json.dumps({"section": "bursaries", "total": bursary_count})
+                    payload = _json.dumps({"section": "bursaries", "total": chunk["total"]})
                     yield f"event: count\ndata: {payload}\n\n"
 
                 elif ctype == "bursary":
-                    payload = _json.dumps({
-                        "index": chunk["index"],
-                        "data":  chunk["data"],
-                    })
-                    yield f"event: bursary\ndata: {payload}\n\n"
-                    # Small stagger so cards animate in one by one
-                    _time.sleep(0.18)
+                    bursary_items.append(chunk)
 
                 elif ctype == "done":
-                    pass  # handled by altfunding_start signal below
+                    break
+
+            # Stream each bursary card shell + narrative tokens
+            for chunk in bursary_items:
+                idx  = chunk["index"]
+                data = chunk["data"]
+
+                # 1. Send card shell (all metadata except description)
+                shell = _json.dumps({"section": "bursaries", "index": idx, "data": data})
+                yield f"event: card_start\ndata: {shell}\n\n"
+
+                # 2. Stream narrative tokens word by word
+                for tok in stream_item_narrative(student, data, "bursary"):
+                    if tok["type"] == "token":
+                        payload = _json.dumps({
+                            "section": "bursaries",
+                            "index":   idx,
+                            "token":   tok["token"],
+                        })
+                        yield f"event: token\ndata: {payload}\n\n"
+
+                # 3. Signal this card's narrative is complete
+                yield f"event: card_end\ndata: {_json.dumps({'section': 'bursaries', 'index': idx})}\n\n"
 
             # ── Alternative funding ──────────────────────────────────────
             yield "event: status\ndata: altfunding_start\n\n"
 
+            alt_items = []
             for chunk in stream_alt_funding(student):
                 ctype = chunk["type"]
 
@@ -322,23 +341,36 @@ def api_funding_stream():
                     yield f"event: count\ndata: {payload}\n\n"
 
                 elif ctype == "partner":
-                    payload = _json.dumps({
-                        "index": chunk["index"],
-                        "data":  chunk["data"],
-                    })
-                    yield f"event: partner\ndata: {payload}\n\n"
-                    _time.sleep(0.18)
+                    alt_items.append(chunk)
 
                 elif ctype == "done":
-                    pass
+                    break
+
+            for chunk in alt_items:
+                idx  = chunk["index"]
+                data = chunk["data"]
+
+                shell = _json.dumps({"section": "altfunding", "index": idx, "data": data})
+                yield f"event: card_start\ndata: {shell}\n\n"
+
+                for tok in stream_item_narrative(student, data, "partner"):
+                    if tok["type"] == "token":
+                        payload = _json.dumps({
+                            "section": "altfunding",
+                            "index":   idx,
+                            "token":   tok["token"],
+                        })
+                        yield f"event: token\ndata: {payload}\n\n"
+
+                yield f"event: card_end\ndata: {_json.dumps({'section': 'altfunding', 'index': idx})}\n\n"
 
             # ── All done ─────────────────────────────────────────────────
             yield "event: status\ndata: complete\n\n"
 
-        except Exception as exc:
+        except Exception:
             import traceback
             traceback.print_exc()
-            yield f"event: status\ndata: error\n\n"
+            yield "event: status\ndata: error\n\n"
 
     response = Response(
         stream_with_context(generate()),

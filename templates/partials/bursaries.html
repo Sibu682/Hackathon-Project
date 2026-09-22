@@ -1,6 +1,6 @@
 {# ── Personalised Bursary Recommendations ─────────────────
-   Rendered as a skeleton shell on page load.
-   The funding SSE stream (main.js) injects real cards.
+   Dormant on load. The "Check Available Funding" button
+   triggers the SSE stream — nothing loads automatically.
    ──────────────────────────────────────────────────────── #}
 <div class="card card-accent-success" id="bursaries">
 
@@ -12,81 +12,83 @@
 
   <div class="card-body" id="bursary-card-body">
 
-    {# ── Agent status bar (visible while streaming) ──────── #}
-    <div class="funding-status-bar" id="bursary-status-bar" aria-live="polite">
-      <span class="funding-status-dot funding-status-dot--pulse" id="bursary-status-dot" aria-hidden="true"></span>
-      <span class="funding-status-label" id="bursary-status-label">
-        AI Agent is finding your bursary matches…
-      </span>
-    </div>
-
-    {# ── Skeleton placeholder cards (3 × shimmer) ─────────── #}
-    <div id="bursary-skeletons" aria-hidden="true">
-      <div class="skeleton-card">
-        <div class="skeleton-card-header">
-          <div class="skeleton-circle"></div>
-          <div class="skeleton-lines">
-            <div class="skeleton-line skeleton-line--title"></div>
-            <div class="skeleton-line skeleton-line--sub"></div>
-          </div>
-          <div class="skeleton-pill"></div>
-        </div>
-        <div class="skeleton-card-body">
-          <div class="skeleton-line skeleton-line--full"></div>
-          <div class="skeleton-line skeleton-line--full"></div>
-          <div class="skeleton-line skeleton-line--short"></div>
-        </div>
-      </div>
-      <div class="skeleton-card">
-        <div class="skeleton-card-header">
-          <div class="skeleton-circle"></div>
-          <div class="skeleton-lines">
-            <div class="skeleton-line skeleton-line--title"></div>
-            <div class="skeleton-line skeleton-line--sub"></div>
-          </div>
-          <div class="skeleton-pill"></div>
-        </div>
-        <div class="skeleton-card-body">
-          <div class="skeleton-line skeleton-line--full"></div>
-          <div class="skeleton-line skeleton-line--full"></div>
-          <div class="skeleton-line skeleton-line--short"></div>
-        </div>
-      </div>
-      <div class="skeleton-card">
-        <div class="skeleton-card-header">
-          <div class="skeleton-circle"></div>
-          <div class="skeleton-lines">
-            <div class="skeleton-line skeleton-line--title"></div>
-            <div class="skeleton-line skeleton-line--sub"></div>
-          </div>
-          <div class="skeleton-pill"></div>
-        </div>
-        <div class="skeleton-card-body">
-          <div class="skeleton-line skeleton-line--full"></div>
-          <div class="skeleton-line skeleton-line--full"></div>
-          <div class="skeleton-line skeleton-line--short"></div>
-        </div>
+    {# ── Call-to-action — shown until button is pressed ──── #}
+    <div id="funding-cta" class="funding-cta">
+      <div class="funding-cta-icon" aria-hidden="true">🔍</div>
+      <div class="funding-cta-body">
+        <p class="funding-cta-title">Find Funding Options</p>
+        <p class="funding-cta-sub">
+          The AI Agent will search bursaries and alternative funding schemes
+          personalised to your profile.
+        </p>
+        <button
+          id="btn-check-funding"
+          type="button"
+          class="btn-check-funding"
+          aria-describedby="funding-cta-desc"
+        >
+          <span class="btn-check-funding-icon" aria-hidden="true">✨</span>
+          Check Available Funding
+        </button>
+        <p id="funding-cta-desc" class="funding-cta-hint">
+          Results will appear in real-time as the AI Agent generates them.
+        </p>
       </div>
     </div>
 
-    {# ── Live cards injected here by JS ──────────────────── #}
-    <div id="bursary-list" role="list" aria-label="Bursary recommendations"></div>
+    {# ── Everything below is hidden until button is clicked ─ #}
+    <div id="funding-stream-body" style="display:none;">
 
-    {# ── Empty-state (shown if no matches) ───────────────── #}
-    <div id="bursary-empty" style="display:none;">
-      <div class="alert alert-info">
-        <span class="alert-icon">ℹ</span>
-        <div class="alert-body">
-          <strong>No eligible bursaries found</strong>
-          <p>
-            No bursaries in our catalogue currently match your exact profile.
-            Check back regularly as new bursaries are added, or visit
-            <a href="https://www.bursaries.co.za" target="_blank" rel="noopener">bursaries.co.za</a>
-            for a wider listing.
-          </p>
+      {# Section status indicator #}
+      <div class="funding-status-bar" id="bursary-status-bar" aria-live="polite">
+        <span class="funding-status-dot funding-status-dot--pulse"
+              id="bursary-status-dot" aria-hidden="true"></span>
+        <span class="funding-status-label" id="bursary-status-label">
+          AI Agent is generating suggestions…
+        </span>
+      </div>
+
+      {# Skeleton shimmer cards #}
+      <div id="bursary-skeletons" aria-hidden="true">
+        {% for _ in range(3) %}
+        <div class="skeleton-card">
+          <div class="skeleton-card-header">
+            <div class="skeleton-circle"></div>
+            <div class="skeleton-lines">
+              <div class="skeleton-line skeleton-line--title"></div>
+              <div class="skeleton-line skeleton-line--sub"></div>
+            </div>
+            <div class="skeleton-pill"></div>
+          </div>
+          <div class="skeleton-card-body">
+            <div class="skeleton-line skeleton-line--full"></div>
+            <div class="skeleton-line skeleton-line--full"></div>
+            <div class="skeleton-line skeleton-line--short"></div>
+          </div>
+        </div>
+        {% endfor %}
+      </div>
+
+      {# Live cards injected by JS #}
+      <div id="bursary-list" role="list" aria-label="Bursary recommendations"></div>
+
+      {# Empty state #}
+      <div id="bursary-empty" style="display:none;">
+        <div class="alert alert-info">
+          <span class="alert-icon">ℹ</span>
+          <div class="alert-body">
+            <strong>No eligible bursaries found</strong>
+            <p>
+              No bursaries in our catalogue currently match your exact profile.
+              Check back regularly, or visit
+              <a href="https://www.unisa.ac.za" target="_blank" rel="noopener">unisa.ac.za</a>
+              for more information.
+            </p>
+          </div>
         </div>
       </div>
-    </div>
+
+    </div>{# /funding-stream-body #}
 
   </div>
 </div>
