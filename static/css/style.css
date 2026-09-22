@@ -98,7 +98,7 @@ img { max-width: 100%; }
 }
 .navbar-brand:hover { color: rgba(255,255,255,.9); text-decoration: none; }
 .navbar-logo-img {
-  height: 77px; width: auto;
+  height: 35px; width: auto;
   /* Keep logo crisp on the dark navbar — add subtle shadow for depth */
   filter: drop-shadow(0 1px 4px rgba(0,0,0,.35));
   /* Round the white background slightly so it floats cleanly */
