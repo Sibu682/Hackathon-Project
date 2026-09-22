@@ -11,27 +11,37 @@ from __future__ import annotations
 
 import json
 import os
-from typing import Any
+import time
+from typing import Any, Generator
 
 from rich.console import Console
 
 console = Console()
 
-# Lazy import — only needed when OpenAI key is present
-_openai_client = None
+# Lazy import — only needed when Groq key is present
+_groq_client = None
 
 
 def _get_openai_client():
-    global _openai_client
-    if _openai_client is not None:
-        return _openai_client
-    api_key = os.getenv("OPENAI_API_KEY", "")
+    """Return a Groq client (OpenAI-compatible).
+
+    Groq exposes the same chat completions interface as OpenAI, so the
+    existing tool-calling and streaming code works without any changes.
+    The openai SDK is pointed at Groq's base URL with the Groq API key.
+    """
+    global _groq_client
+    if _groq_client is not None:
+        return _groq_client
+    api_key = os.getenv("GROQ_API_KEY", "")
     if not api_key:
         return None
     try:
         from openai import OpenAI  # type: ignore
-        _openai_client = OpenAI(api_key=api_key)
-        return _openai_client
+        _groq_client = OpenAI(
+            api_key=api_key,
+            base_url="https://api.groq.com/openai/v1",
+        )
+        return _groq_client
     except Exception:
         return None
 
@@ -147,9 +157,33 @@ def analyse_funding_status(student: dict[str, Any]) -> dict[str, Any]:
         return _ai_assessment(client, student)
     else:
         console.print(
-            "[dim yellow]ℹ No OpenAI API key found — using rule-based assessment.[/dim yellow]"
+            "[dim yellow]ℹ No Groq API key found — using rule-based assessment.[/dim yellow]"
         )
         return _rule_based_assessment(student)
+
+
+def stream_funding_analysis(student: dict[str, Any]) -> Generator[dict[str, Any], None, None]:
+    """
+    Streaming version of the AI agent analysis.
+
+    Yields dicts of two shapes:
+        {"type": "token",  "token":  <str>}   — one word/punctuation chunk
+        {"type": "result", "result": <dict>}  — final complete assessment
+
+    The OpenAI path uses the streaming chat completions API so tokens arrive
+    from the model in real time.  The rule-based path simulates streaming by
+    emitting words with a small delay, giving the same progressive UX without
+    requiring an API key.
+    """
+    client = _get_openai_client()
+
+    if client:
+        yield from _stream_ai_assessment(client, student)
+    else:
+        console.print(
+            "[dim yellow]ℹ No Groq API key found — streaming rule-based assessment.[/dim yellow]"
+        )
+        yield from _stream_rule_based_assessment(student)
 
 
 # ---------------------------------------------------------------------------
@@ -303,3 +337,133 @@ def _rule_based_assessment(student: dict[str, Any]) -> dict[str, Any]:
         "summary_message": summary,
         "source": "rules",
     }
+
+
+# ---------------------------------------------------------------------------
+# Streaming helpers
+# ---------------------------------------------------------------------------
+
+def _stream_ai_assessment(
+    client, student: dict[str, Any]
+) -> Generator[dict[str, Any], None, None]:
+    """
+    Calls OpenAI with streaming enabled.
+
+    Because the model is forced to call the `assess_nsfas_status` tool, the
+    streamed content arrives as function-call argument deltas.  We accumulate
+    the full JSON, then parse it at the end.  While accumulating we emit
+    word-level tokens extracted from the `summary_message` field as it grows,
+    giving a real-time typing effect.
+    """
+    try:
+        stream = client.chat.completions.create(
+            model=os.getenv("AI_MODEL", "gpt-4o-mini"),
+            messages=[
+                {"role": "system", "content": _SYSTEM_PROMPT},
+                {"role": "user",   "content": _build_user_message(student)},
+            ],
+            tools=_TOOLS,
+            tool_choice={"type": "function", "function": {"name": "assess_nsfas_status"}},
+            temperature=0.2,
+            stream=True,
+        )
+
+        accumulated_args = ""
+        emitted_summary_len = 0  # how many chars of summary_message we've already tokenised
+
+        for chunk in stream:
+            delta = chunk.choices[0].delta if chunk.choices else None
+            if not delta:
+                continue
+
+            tool_calls = getattr(delta, "tool_calls", None)
+            if not tool_calls:
+                continue
+
+            fragment = tool_calls[0].function.arguments or ""
+            accumulated_args += fragment
+
+            # Try to extract the summary_message value as it streams in and
+            # emit new words progressively.
+            try:
+                # Look for the summary_message string value inside the partial JSON.
+                # We search for the key and then walk the characters after the colon.
+                key_marker = '"summary_message"'
+                key_idx = accumulated_args.find(key_marker)
+                if key_idx != -1:
+                    after_key = accumulated_args[key_idx + len(key_marker):]
+                    # Find the opening quote of the value
+                    colon_idx = after_key.find(":")
+                    if colon_idx != -1:
+                        after_colon = after_key[colon_idx + 1:].lstrip()
+                        if after_colon.startswith('"'):
+                            # Extract characters until either the closing quote or end
+                            value_chars = []
+                            escape_next = False
+                            for ch in after_colon[1:]:
+                                if escape_next:
+                                    value_chars.append(ch)
+                                    escape_next = False
+                                elif ch == "\\":
+                                    escape_next = True
+                                elif ch == '"':
+                                    break
+                                else:
+                                    value_chars.append(ch)
+
+                            current_summary = "".join(value_chars)
+                            new_text = current_summary[emitted_summary_len:]
+
+                            if new_text:
+                                # Split on whitespace boundaries and emit word tokens
+                                words = new_text.split(" ")
+                                for i, word in enumerate(words):
+                                    if not word:
+                                        continue
+                                    # Don't emit a trailing partial word (no space yet)
+                                    if i == len(words) - 1 and not new_text.endswith(" "):
+                                        break
+                                    yield {"type": "token", "token": word + " "}
+                                    emitted_summary_len += len(word) + 1
+            except Exception:
+                pass  # partial JSON — keep accumulating
+
+        # Parse the final complete JSON and emit any remaining summary tokens
+        try:
+            result = json.loads(accumulated_args)
+            final_summary = result.get("summary_message", "")
+            remaining = final_summary[emitted_summary_len:]
+            if remaining.strip():
+                words = remaining.split()
+                for word in words:
+                    yield {"type": "token", "token": word + " "}
+
+            result["source"] = "ai"
+            yield {"type": "result", "result": result}
+        except Exception as parse_exc:
+            console.print(f"[yellow]Stream parse failed ({parse_exc}), falling back.[/yellow]")
+            yield from _stream_rule_based_assessment(student)
+
+    except Exception as exc:
+        console.print(f"[yellow]AI stream failed ({exc}), falling back to rules.[/yellow]")
+        yield from _stream_rule_based_assessment(student)
+
+
+def _stream_rule_based_assessment(
+    student: dict[str, Any]
+) -> Generator[dict[str, Any], None, None]:
+    """
+    Runs the rule-based assessment and simulates a streaming typing effect by
+    emitting the summary message word-by-word with small delays.
+    """
+    result = _rule_based_assessment(student)
+    summary = result.get("summary_message", "")
+
+    words = summary.split()
+    for i, word in enumerate(words):
+        # Vary the delay slightly so it feels organic, not robotic
+        delay = 0.045 if i % 5 != 0 else 0.08
+        time.sleep(delay)
+        yield {"type": "token", "token": word + " "}
+
+    yield {"type": "result", "result": result}

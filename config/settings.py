@@ -8,9 +8,9 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-# OpenAI
-OPENAI_API_KEY: str = os.getenv("OPENAI_API_KEY", "")
-AI_MODEL: str = os.getenv("AI_MODEL", "gpt-4o-mini")
+# AI provider — Groq (OpenAI-compatible API)
+GROQ_API_KEY: str = os.getenv("GROQ_API_KEY", "")
+AI_MODEL: str = os.getenv("AI_MODEL", "openai/gpt-oss-120b")
 
 # NSFAS — verified from official NSFAS letterhead (nsfas.org.za, March 2026)
 NSFAS_WEBSITE: str = "https://www.nsfas.org.za"

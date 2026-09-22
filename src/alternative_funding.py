@@ -47,3 +47,23 @@ def _student_qualifies(partner: dict[str, Any], student: dict[str, Any]) -> bool
 def get_matched_partners(student: dict[str, Any]) -> list[dict[str, Any]]:
     """Return only the alternative funding partners the student qualifies for."""
     return [p for p in ALTERNATIVE_FUNDING_PARTNERS if _student_qualifies(p, student)]
+
+
+# ---------------------------------------------------------------------------
+# Streaming API
+# ---------------------------------------------------------------------------
+
+def stream_alt_funding(student: dict[str, Any]):
+    """
+    Generator version of get_matched_partners().
+
+    Yields dicts:
+        {"type": "count",   "total": int}               — emitted first
+        {"type": "partner", "index": int, "data": dict} — one per match
+        {"type": "done"}                                 — emitted last
+    """
+    results = get_matched_partners(student)
+    yield {"type": "count", "total": len(results)}
+    for i, p in enumerate(results):
+        yield {"type": "partner", "index": i, "data": p}
+    yield {"type": "done"}
